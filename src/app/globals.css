@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Dancing+Script:wght@700&display=swap');
+@import "tailwindcss";
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:  #09090a;
+  --bg2: #111113;
+  --bg3: #18181b;
+  --bg4: #1e1e22;
+  --border:  #2a2a2f;
+  --border2: #333340;
+  --gold:     #c9a227;
+  --gold2:    #e8c45a;
+  --gold3:    #f5d87a;
+  --gold-dim: rgba(201,162,39,0.15);
+  --gold-glow:rgba(201,162,39,0.08);
+  --green:     #22c55e;
+  --green-dim: rgba(34,197,94,0.15);
+  --red:       #ef4444;
+  --red-dim:   rgba(239,68,68,0.15);
+  --txt:  #f0e8d0;
+  --txt2: #a09880;
+  --txt3: #6a6458;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--txt); font-family: 'Inter', sans-serif; overflow: hidden; }
+#root, main { height: 100%; }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+input, select, textarea, button { font-family: 'Inter', sans-serif; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes drawLine {
+  from { stroke-dashoffset: var(--line-len, 2000); }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes fillArea {
+  from { opacity: 0; } to { opacity: 1; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(0.85); }
+}
+@keyframes rowIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes tagPop {
+  0%   { transform: scale(0.8); opacity: 0; }
+  70%  { transform: scale(1.1); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.fade-up  { animation: fadeUp  0.45s cubic-bezier(.22,.68,0,1.2) both; }
+.fade-in  { animation: fadeIn  0.35s ease both; }
+.count-up { animation: countUp 0.5s  cubic-bezier(.22,.68,0,1.2) both; }
