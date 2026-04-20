@@ -24,8 +24,10 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
     borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
   };
 
+  const netResult = (t: Trade) => t.result - (t.commission || 0);
+
   const computedCOP = (t: Trade) => {
-    const val = t.cop !== 0 ? t.cop : Math.round(t.result * copRate);
+    const val = t.cop !== 0 ? t.cop : Math.round(netResult(t) * copRate);
     return val;
   };
 
@@ -42,7 +44,7 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
-            {['Date', 'Time', 'Asset', 'Type', 'Strategy', 'P/L (USD)',
+            {['Date', 'Time', 'Asset', 'Type', 'Strategy', 'Gross (USD)', 'Commission', 'Net (USD)',
               ...(showCOP ? ['COP'] : []),
               'Emotion', 'Status'].map((h) => (
               <th key={h} style={th}>{h}</th>
@@ -53,6 +55,8 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
         <tbody>
           {rows.map((t, i) => {
             const cop = computedCOP(t);
+            const net = netResult(t);
+            const comm = t.commission || 0;
             return (
               <tr key={t.id} style={{ transition: 'background 0.15s', animation: `rowIn 0.3s ease ${i * 40}ms both` }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg3)')}
@@ -74,8 +78,14 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
                     {t.strategy}
                   </span>
                 </td>
-                <td style={{ ...td, color: t.result >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+                <td style={{ ...td, color: 'var(--txt2)' }}>
                   {t.result >= 0 ? '+$' : '-$'}{Math.abs(t.result).toLocaleString()}
+                </td>
+                <td style={{ ...td, color: 'var(--red)', fontSize: 12 }}>
+                  {comm > 0 ? `-$${comm.toLocaleString()}` : '—'}
+                </td>
+                <td style={{ ...td, color: net >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+                  {net >= 0 ? '+$' : '-$'}{Math.abs(net).toLocaleString()}
                 </td>
                 {showCOP && (
                   <td style={{ ...td, color: cop >= 0 ? 'var(--green)' : 'var(--red)', fontSize: 12 }}>

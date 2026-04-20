@@ -14,6 +14,7 @@ export interface Trade {
   tp: number;
   lotSize?: number;
   result: number;
+  commission: number;
   cop: number;
   emotion?: string;
   notes: string;
@@ -34,6 +35,7 @@ export interface TradeFormData {
   tp: string;
   lotSize: string;
   result: string;
+  commission: string;
   cop: string;
   emotion: string;
   notes: string;

@@ -38,6 +38,7 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
           tp: String(editTrade.tp),
           lotSize: String(editTrade.lotSize || ''),
           result: String(editTrade.result),
+          commission: String(editTrade.commission || 0),
           cop: String(editTrade.cop),
           emotion: editTrade.emotion || '',
           notes: editTrade.notes,
@@ -54,6 +55,7 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
           tp: '',
           lotSize: '',
           result: '',
+          commission: '',
           cop: '',
           emotion: emotions[0] || '',
           notes: '',
@@ -156,25 +158,53 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
         <input type="number" step="0.01" value={form.lotSize} onChange={set('lotSize')} placeholder="0.01" style={inp} onFocus={focus} onBlur={blur} />
       </div>
 
-      {/* Result USD / COP */}
+      {/* Result + Commission */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
-          <label style={lbl}>Result (USD)</label>
+          <label style={lbl}>Result Bruto (USD)</label>
           <input type="number" value={form.result} onChange={set('result')} placeholder="+0.00"
             style={{ ...inp, color: parseFloat(form.result) >= 0 ? 'var(--green)' : 'var(--red)' }}
             onFocus={focus} onBlur={blur} />
         </div>
         <div>
-          <label style={lbl}>
-            COP{' '}
-            <span style={{ fontSize: 9, color: 'var(--txt3)', fontFamily: 'var(--mono)', textTransform: 'none' }}>
-              @{copRate.toLocaleString('es-CO')}
-            </span>
-          </label>
-          <input type="number" value={form.cop} onChange={set('cop')} placeholder="+0"
-            style={{ ...inp, color: parseFloat(form.cop) >= 0 ? 'var(--green)' : 'var(--red)' }}
+          <label style={lbl}>Comisión (USD)</label>
+          <input type="number" value={form.commission} onChange={set('commission')} placeholder="0.00"
+            style={{ ...inp, color: 'var(--red)' }}
             onFocus={focus} onBlur={blur} />
         </div>
+      </div>
+
+      {/* Net result display */}
+      {(form.result !== '' || form.commission !== '') && (() => {
+        const gross = parseFloat(form.result) || 0;
+        const comm  = parseFloat(form.commission) || 0;
+        const net   = gross - comm;
+        return (
+          <div style={{
+            padding: '10px 14px', borderRadius: 'var(--radius-sm)',
+            background: net >= 0 ? 'rgba(34,197,94,0.07)' : 'rgba(239,68,68,0.07)',
+            border: `1px solid ${net >= 0 ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <span style={{ fontSize: 11, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Result Neto</span>
+            <span style={{ fontSize: 15, fontWeight: 700, fontFamily: 'var(--mono)', color: net >= 0 ? 'var(--green)' : 'var(--red)' }}>
+              {net >= 0 ? '+' : ''}{net.toFixed(2)} USD
+            </span>
+          </div>
+        );
+      })()}
+
+      {/* COP */}
+      <div>
+        <label style={lbl}>
+          COP{' '}
+          <span style={{ fontSize: 9, color: 'var(--txt3)', fontFamily: 'var(--mono)', textTransform: 'none' }}>
+            @{copRate.toLocaleString('es-CO')}
+          </span>
+        </label>
+        <input type="number" value={form.cop} onChange={set('cop')} placeholder="+0"
+          style={{ ...inp, color: parseFloat(form.cop) >= 0 ? 'var(--green)' : 'var(--red)' }}
+          onFocus={focus} onBlur={blur} />
       </div>
 
       {/* Emotion */}

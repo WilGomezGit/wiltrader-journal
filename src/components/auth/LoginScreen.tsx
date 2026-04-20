@@ -84,12 +84,12 @@ export default function LoginScreen({ onLogin, onSignUp, onGoogle }: LoginScreen
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28 }}>
           <div style={{
-            width: 110, height: 110, borderRadius: 24, overflow: 'hidden',
+            width: 136, height: 136, borderRadius: 28, overflow: 'hidden',
             border: '1px solid rgba(201,162,39,0.30)',
             boxShadow: '0 12px 56px rgba(0,0,0,0.65), 0 0 0 5px rgba(201,162,39,0.09)',
             marginBottom: 16, background: '#0d1018', transition: 'transform 0.4s, box-shadow 0.4s',
           }}>
-            <img src="/logo.png" alt="WilTrader Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src="/logo.png" alt="WilTrader Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <div style={{ fontSize: 11, color: '#7a7060', letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4 }}>
             Trading Journal Pro

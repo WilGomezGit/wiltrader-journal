@@ -32,6 +32,7 @@ export async function addTrade(userId: string, data: TradeFormData): Promise<str
     tp: parseFloat(data.tp) || 0,
     lotSize: parseFloat(data.lotSize) || 0,
     result,
+    commission: parseFloat(data.commission) || 0,
     cop: parseFloat(data.cop) || 0,
     time: data.time || '',
     emotion: data.emotion || '',
@@ -58,6 +59,7 @@ export async function updateTrade(tradeId: string, data: Partial<TradeFormData>)
     updates.result = result;
     updates.status = data.status || (result >= 0 ? 'Win' : 'Loss');
   }
+  if (data.commission !== undefined) updates.commission = parseFloat(data.commission) || 0;
   if (data.cop !== undefined) updates.cop = parseFloat(data.cop) || 0;
   if (data.time !== undefined) updates.time = data.time;
   if (data.emotion !== undefined) updates.emotion = data.emotion;
