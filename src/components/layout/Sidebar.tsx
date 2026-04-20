@@ -10,10 +10,11 @@ interface SidebarProps {
 }
 
 const nav = [
-  { href: '/dashboard', icon: 'dashboard' as const, label: 'Dashboard' },
-  { href: '/journal',   icon: 'journal'   as const, label: 'Journal'   },
-  { href: '/analytics', icon: 'analytics' as const, label: 'Analytics' },
-  { href: '/settings',  icon: 'settings'  as const, label: 'Settings'  },
+  { href: '/dashboard', icon: 'dashboard' as const, label: 'Dashboard'  },
+  { href: '/journal',   icon: 'journal'   as const, label: 'Journal'    },
+  { href: '/analytics', icon: 'analytics' as const, label: 'Analytics'  },
+  { href: '/strategy',  icon: 'strategy'  as const, label: 'Estrategia' },
+  { href: '/settings',  icon: 'settings'  as const, label: 'Settings'   },
 ];
 
 export default function Sidebar({ onSignOut, traderName = 'WilTrader', strategyText = '' }: SidebarProps) {
@@ -89,18 +90,6 @@ export default function Sidebar({ onSignOut, traderName = 'WilTrader', strategyT
           );
         })}
       </nav>
-
-      {/* Strategy */}
-      {strategyText && (
-        <div style={{ margin: '0 12px 8px', padding: '12px', borderRadius: 'var(--radius-sm)', background: 'var(--bg3)', border: '1px solid rgba(201,162,39,0.18)' }}>
-          <div style={{ fontSize: 10, color: 'var(--gold)', letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 8 }}>
-            Mi Estrategia
-          </div>
-          <p style={{ fontSize: 11, color: 'var(--txt2)', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: 160, overflowY: 'auto' }}>
-            {strategyText}
-          </p>
-        </div>
-      )}
 
       {/* Footer */}
       <div style={{ padding: '12px 12px 16px', borderTop: '1px solid var(--border)' }}>
