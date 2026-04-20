@@ -39,7 +39,7 @@ export default function Sidebar({ onSignOut, traderName = 'WilTrader', strategyT
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <div style={{
-          width: 77, height: 77, borderRadius: 18,
+          width: 100, height: 100, borderRadius: 22,
           overflow: 'hidden',
           border: '1px solid rgba(201,162,39,0.35)',
           boxShadow: '0 6px 28px rgba(0,0,0,0.45), 0 0 0 3px rgba(201,162,39,0.08)',

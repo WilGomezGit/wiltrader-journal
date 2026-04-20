@@ -141,7 +141,7 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
 
       {/* Entry / SL / TP */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-        {(['Entry', 'Stop Loss', 'Take Profit'] as const).map((label, idx) => {
+        {(['Entry', 'SL', 'TP'] as const).map((label, idx) => {
           const key = (['entry', 'sl', 'tp'] as const)[idx];
           return (
             <div key={key}>
