@@ -77,6 +77,6 @@ export interface Stats {
 
 export interface TrmData {
   rate: number;
-  source: 'wilkinson' | 'open.er-api' | 'fallback';
+  source: 'superfinanciera' | 'fawaz-api' | 'frankfurter' | 'open.er-api' | 'fallback';
   fallback?: boolean;
 }
