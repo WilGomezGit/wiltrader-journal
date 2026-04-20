@@ -3,9 +3,11 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppProvider, useApp } from '@/context/AppContext';
 import Sidebar from '@/components/layout/Sidebar';
+import { useFirebaseStatus } from '@/hooks/useFirebaseStatus';
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut, settings, showCOP, toggleCOP } = useApp();
+  const fbConnected = useFirebaseStatus();
   const router = useRouter();
 
   useEffect(() => {
@@ -39,6 +41,25 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
           background: 'var(--bg2)',
           flexShrink: 0,
         }}>
+          {/* Firebase status */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '4px 10px', borderRadius: 8,
+            border: `1px solid ${fbConnected === null ? 'var(--border2)' : fbConnected ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
+            background: fbConnected === null ? 'var(--bg4)' : fbConnected ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+            fontSize: 10, fontWeight: 600, letterSpacing: '0.05em',
+            color: fbConnected === null ? 'var(--txt3)' : fbConnected ? '#22c55e' : '#ef4444',
+            userSelect: 'none',
+          }}>
+            <div style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: fbConnected === null ? '#666' : fbConnected ? '#22c55e' : '#ef4444',
+              boxShadow: fbConnected ? '0 0 6px #22c55e' : 'none',
+              animation: fbConnected ? 'pulse 2s ease-in-out infinite' : 'none',
+            }} />
+            {fbConnected === null ? 'Connecting...' : fbConnected ? 'Firebase Connected' : 'Firebase Offline'}
+          </div>
+
           {/* USD / COP toggle */}
           <button
             type="button"

@@ -16,9 +16,10 @@ interface DashboardViewProps {
   onAddTrade: (data: TradeFormData) => Promise<void>;
   onEditTrade: (id: string, data: Partial<TradeFormData>) => Promise<void>;
   showCOP: boolean;
+  copRate?: number;
 }
 
-export default function DashboardView({ trades, stats, strategies, assets, onAddTrade, onEditTrade, showCOP }: DashboardViewProps) {
+export default function DashboardView({ trades, stats, strategies, assets, onAddTrade, onEditTrade, showCOP, copRate = 4200 }: DashboardViewProps) {
   const [showForm, setShowForm] = useState(false);
 
   const spark = stats.equityCurve.slice(-10);
@@ -37,7 +38,7 @@ export default function DashboardView({ trades, stats, strategies, assets, onAdd
           <MetricCard
             label="Account Balance"
             value={`$${stats.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            sub={showCOP ? `COP ${Math.abs(stats.totalBalance * 4100).toLocaleString('es-CO')}` : undefined}
+            sub={showCOP ? `COP ${Math.round(stats.totalBalance * copRate).toLocaleString('es-CO')}` : undefined}
             trend={stats.totalPL >= 0 ? 3.2 : -3.2}
             spark={spark}
             sparkColor="var(--gold)"
@@ -47,7 +48,7 @@ export default function DashboardView({ trades, stats, strategies, assets, onAdd
           <MetricCard
             label="Profit / Loss"
             value={fmtUSD(stats.totalPL)}
-            sub={showCOP ? fmtCOP(stats.totalPLCOP) : undefined}
+            sub={showCOP ? fmtCOP(Math.round(stats.totalPL * copRate)) : undefined}
             spark={plSpark}
             sparkColor={stats.totalPL >= 0 ? 'var(--green)' : 'var(--red)'}
             delay={60}

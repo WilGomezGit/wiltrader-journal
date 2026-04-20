@@ -18,7 +18,6 @@ const fmtY = (v: number): string => {
 
 export default function EquityChart({ data }: EquityChartProps) {
   const pathRef = useRef<SVGPathElement>(null);
-  const dotRef = useRef<SVGCircleElement>(null);
   const [animated, setAnimated] = useState(false);
   const uid = useId().replace(/:/g, '');
 
@@ -76,26 +75,15 @@ export default function EquityChart({ data }: EquityChartProps) {
     path.style.strokeDashoffset = String(totalLen);
     path.style.transition = 'none';
 
-    const dot = dotRef.current;
     const startAt = performance.now();
     const dur = 1800;
-
     const ease = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
     let raf: number;
     const tick = (now: number) => {
       const progress = Math.min((now - startAt) / dur, 1);
-      const e = ease(progress);
-      const drawn = totalLen * e;
+      const drawn = totalLen * ease(progress);
       path.style.strokeDashoffset = String(totalLen - drawn);
-
-      if (dot) {
-        const pt = path.getPointAtLength(drawn);
-        dot.setAttribute('cx', String(pt.x));
-        dot.setAttribute('cy', String(pt.y));
-        dot.style.opacity = String(progress > 0.02 ? 1 : 0);
-      }
-
       if (progress < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -194,23 +182,6 @@ export default function EquityChart({ data }: EquityChartProps) {
         />
       )}
 
-      {/* Animated tracer dot */}
-      {pts.length > 1 && (
-        <>
-          {/* outer glow ring */}
-          <circle
-            ref={dotRef}
-            cx={pts[0].x}
-            cy={pts[0].y}
-            r="7"
-            fill="#c9a227"
-            opacity="0"
-            filter={`url(#dotGlow-${uid})`}
-            style={{ transition: 'opacity 0.1s' }}
-          />
-          {/* inner bright dot (same ref but separate element synced via JS) */}
-        </>
-      )}
 
       {/* Resting pulse at end after animation */}
       {animated && pts.length > 0 && (

@@ -31,36 +31,20 @@ export default function Sidebar({ onSignOut, traderName = 'WilTrader' }: Sidebar
     }}>
       {/* Logo */}
       <div style={{
-        padding: '20px 20px 16px',
+        padding: '18px 20px 14px',
         borderBottom: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        justifyContent: 'center',
       }}>
         <div style={{
-          width: 38, height: 38, borderRadius: 10,
+          width: 64, height: 64, borderRadius: 16,
           overflow: 'hidden',
-          border: '1px solid rgba(201,162,39,0.3)',
-          flexShrink: 0,
+          border: '1px solid rgba(201,162,39,0.35)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4), 0 0 0 3px rgba(201,162,39,0.07)',
           background: '#0d1018',
         }}>
           <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        </div>
-        <div>
-          <div style={{
-            fontSize: 16,
-            fontWeight: 700,
-            fontFamily: "'Dancing Script', cursive",
-            background: 'linear-gradient(135deg,#c9a227,#f5d87a,#c9a227)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            lineHeight: 1.1,
-          }}>
-            WilTrader
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--txt3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Journal Pro
-          </div>
         </div>
       </div>
 

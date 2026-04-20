@@ -3,7 +3,7 @@ import { useApp } from '@/context/AppContext';
 import DashboardView from '@/components/views/DashboardView';
 
 export default function DashboardPage() {
-  const { trades, stats, settings, addTrade, editTrade, showCOP } = useApp();
+  const { trades, stats, settings, addTrade, editTrade, showCOP, copRate } = useApp();
   return (
     <div style={{ height: '100%' }}>
       <DashboardView
@@ -14,6 +14,7 @@ export default function DashboardPage() {
         onAddTrade={addTrade}
         onEditTrade={editTrade}
         showCOP={showCOP}
+        copRate={copRate}
       />
     </div>
   );
