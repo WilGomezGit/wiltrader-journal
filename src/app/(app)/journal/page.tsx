@@ -3,7 +3,7 @@ import { useApp } from '@/context/AppContext';
 import JournalView from '@/components/views/JournalView';
 
 export default function JournalPage() {
-  const { trades, settings, addTrade, editTrade, deleteTrade, showCOP } = useApp();
+  const { trades, settings, addTrade, editTrade, deleteTrade, showCOP, copRate } = useApp();
   return (
     <div style={{ height: '100%' }}>
       <JournalView
@@ -14,6 +14,7 @@ export default function JournalPage() {
         onEdit={editTrade}
         onDelete={deleteTrade}
         showCOP={showCOP}
+        copRate={copRate}
       />
     </div>
   );

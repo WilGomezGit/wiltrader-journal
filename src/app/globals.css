@@ -15,6 +15,7 @@
   --gold3:    #f5d87a;
   --gold-dim: rgba(201,162,39,0.15);
   --gold-glow:rgba(201,162,39,0.08);
+  --gold-border: rgba(201,162,39,0.35);
   --green:     #22c55e;
   --green-dim: rgba(34,197,94,0.15);
   --red:       #ef4444;
@@ -23,6 +24,10 @@
   --txt2: #a09880;
   --txt3: #6a6458;
   --mono: 'JetBrains Mono', monospace;
+  --radius:    14px;
+  --radius-sm: 8px;
+  --card-border: 1px solid var(--gold-border);
+  --card-shadow: 0 0 0 0 transparent;
 }
 
 html, body { height: 100%; background: var(--bg); color: var(--txt); font-family: 'Inter', sans-serif; overflow: hidden; }

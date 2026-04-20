@@ -90,7 +90,7 @@ export default function SettingsView({ settings, onSave }: SettingsViewProps) {
   return (
     <div style={{ maxWidth: 680, display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', height: '100%', paddingBottom: 20 }}>
       {/* Account */}
-      <div className="fade-up" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '22px' }}>
+      <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: '22px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
           <Icon name="trophy" size={16} color="var(--gold)" />
           <span style={{ fontSize: 14, fontWeight: 600 }}>Cuenta</span>
@@ -117,7 +117,7 @@ export default function SettingsView({ settings, onSave }: SettingsViewProps) {
       </div>
 
       {/* Preferences */}
-      <div className="fade-up" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '22px', animationDelay: '60ms' }}>
+      <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: '22px', animationDelay: '60ms' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
           <Icon name="settings" size={16} color="var(--gold)" />
           <span style={{ fontSize: 14, fontWeight: 600 }}>Preferencias</span>
@@ -139,7 +139,7 @@ export default function SettingsView({ settings, onSave }: SettingsViewProps) {
       </div>
 
       {/* Strategies */}
-      <div className="fade-up" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '22px', animationDelay: '120ms' }}>
+      <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: '22px', animationDelay: '120ms' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
           <Icon name="layers" size={16} color="var(--gold)" />
           <span style={{ fontSize: 14, fontWeight: 600 }}>Estrategias</span>
@@ -154,7 +154,7 @@ export default function SettingsView({ settings, onSave }: SettingsViewProps) {
       </div>
 
       {/* Assets */}
-      <div className="fade-up" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '22px', animationDelay: '160ms' }}>
+      <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: '22px', animationDelay: '160ms' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
           <Icon name="tag" size={16} color="var(--gold)" />
           <span style={{ fontSize: 14, fontWeight: 600 }}>Activos Operados</span>
@@ -169,8 +169,42 @@ export default function SettingsView({ settings, onSave }: SettingsViewProps) {
         />
       </div>
 
+      {/* Emotions */}
+      <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: '22px', animationDelay: '180ms' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: 16 }}>🧠</span>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Estados Emocionales</span>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--txt3)', marginBottom: 14 }}>Emociones disponibles al registrar un trade. Puedes personalizar con emojis.</p>
+        <TagListEditor
+          items={local.emotions ?? []}
+          onAdd={(v) => setLocal((p) => ({ ...p, emotions: [...(p.emotions ?? []), v] }))}
+          onRemove={(v) => setLocal((p) => ({ ...p, emotions: (p.emotions ?? []).filter((e) => e !== v) }))}
+          placeholder="Ej: 😎 Enfocado"
+          accentColor="var(--gold)"
+        />
+      </div>
+
+      {/* Strategy Text */}
+      <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: '22px', animationDelay: '210ms' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <Icon name="layers" size={16} color="var(--gold)" />
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Mi Estrategia</span>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--txt3)', marginBottom: 14 }}>Describe tu estrategia principal. Se guarda en Firestore y puedes editarla cuando quieras.</p>
+        <textarea
+          value={local.strategyText ?? ''}
+          onChange={(e) => setLocal((p) => ({ ...p, strategyText: e.target.value }))}
+          rows={8}
+          placeholder="Describe tu plan de trading: criterios de entrada, gestión de riesgo, marcos temporales, reglas de salida..."
+          style={{ width: '100%', padding: '12px', background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-sm)', color: 'var(--txt)', fontSize: 13, lineHeight: 1.6, resize: 'vertical', outline: 'none', fontFamily: 'Inter, sans-serif', transition: 'border-color 0.15s' }}
+          onFocus={(e) => (e.target.style.borderColor = 'var(--gold)')}
+          onBlur={(e) => (e.target.style.borderColor = 'var(--border2)')}
+        />
+      </div>
+
       {/* Firebase status */}
-      <div className="fade-up" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '22px', animationDelay: '200ms' }}>
+      <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: '22px', animationDelay: '200ms' }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Firebase</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--txt2)', marginBottom: 16 }}>
           <span style={{ width: 8, height: 8, background: 'var(--green)', borderRadius: '50%', display: 'inline-block', animation: 'pulse 2s ease-in-out infinite' }} />

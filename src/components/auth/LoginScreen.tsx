@@ -84,9 +84,9 @@ export default function LoginScreen({ onLogin, onSignUp, onGoogle }: LoginScreen
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28 }}>
           <div style={{
-            width: 80, height: 80, borderRadius: 18, overflow: 'hidden',
-            border: '1px solid rgba(201,162,39,0.22)',
-            boxShadow: '0 8px 40px rgba(0,0,0,0.55), 0 0 0 4px rgba(201,162,39,0.07)',
+            width: 110, height: 110, borderRadius: 24, overflow: 'hidden',
+            border: '1px solid rgba(201,162,39,0.30)',
+            boxShadow: '0 12px 56px rgba(0,0,0,0.65), 0 0 0 5px rgba(201,162,39,0.09)',
             marginBottom: 16, background: '#0d1018', transition: 'transform 0.4s, box-shadow 0.4s',
           }}>
             <img src="/logo.png" alt="WilTrader Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

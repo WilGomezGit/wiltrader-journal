@@ -5,6 +5,7 @@ export interface Trade {
   id: string;
   userId: string;
   date: string;
+  time?: string;
   asset: string;
   type: TradeType;
   strategy: string;
@@ -14,6 +15,7 @@ export interface Trade {
   lotSize?: number;
   result: number;
   cop: number;
+  emotion?: string;
   notes: string;
   status: TradeStatus;
   screenshot?: string;
@@ -23,6 +25,7 @@ export interface Trade {
 
 export interface TradeFormData {
   date: string;
+  time: string;
   asset: string;
   type: TradeType;
   strategy: string;
@@ -32,6 +35,7 @@ export interface TradeFormData {
   lotSize: string;
   result: string;
   cop: string;
+  emotion: string;
   notes: string;
   status: TradeStatus;
 }
@@ -45,6 +49,8 @@ export interface UserSettings {
   timezone: string;
   strategies: string[];
   assets: string[];
+  emotions: string[];
+  strategyText: string;
 }
 
 export interface Stats {
@@ -67,4 +73,10 @@ export interface Stats {
   winStreak: number;
   lossStreak: number;
   equityCurve: number[];
+}
+
+export interface TrmData {
+  rate: number;
+  source: 'wilkinson' | 'open.er-api' | 'fallback';
+  fallback?: boolean;
 }

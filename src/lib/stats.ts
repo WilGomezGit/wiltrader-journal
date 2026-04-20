@@ -16,7 +16,11 @@ export function computeStats(trades: Trade[], initialBalance: number): Stats {
 
   const bestTrade = trades.length > 0 ? Math.max(...trades.map((t) => t.result)) : 0;
   const worstTrade = trades.length > 0 ? Math.min(...trades.map((t) => t.result)) : 0;
-  const expectancy = trades.length > 0 ? totalPL / trades.length : 0;
+  const winRate100 = winRate / 100;
+  const lossRate100 = 1 - winRate100;
+  const expectancy = trades.length > 0
+    ? (winRate100 * avgWin) - (lossRate100 * avgLoss)
+    : 0;
 
   // Equity curve
   let equity = initialBalance;

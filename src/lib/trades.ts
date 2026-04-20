@@ -33,6 +33,8 @@ export async function addTrade(userId: string, data: TradeFormData): Promise<str
     lotSize: parseFloat(data.lotSize) || 0,
     result,
     cop: parseFloat(data.cop) || 0,
+    time: data.time || '',
+    emotion: data.emotion || '',
     notes: data.notes,
     status: (data.status || (result >= 0 ? 'Win' : 'Loss')) as TradeStatus,
     createdAt: Date.now(),
@@ -57,6 +59,8 @@ export async function updateTrade(tradeId: string, data: Partial<TradeFormData>)
     updates.status = data.status || (result >= 0 ? 'Win' : 'Loss');
   }
   if (data.cop !== undefined) updates.cop = parseFloat(data.cop) || 0;
+  if (data.time !== undefined) updates.time = data.time;
+  if (data.emotion !== undefined) updates.emotion = data.emotion;
   if (data.notes !== undefined) updates.notes = data.notes;
   if (data.status !== undefined) updates.status = data.status;
   await updateDoc(doc(db, TRADES_COLLECTION, tradeId), updates);

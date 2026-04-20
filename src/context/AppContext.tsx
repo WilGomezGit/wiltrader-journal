@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTrades } from '@/hooks/useTrades';
 import { getUserSettings, saveUserSettings, DEFAULT_SETTINGS } from '@/lib/settings';
 import { computeStats } from '@/lib/stats';
-import type { Trade, TradeFormData, UserSettings, Stats } from '@/types';
+import type { Trade, TradeFormData, UserSettings, Stats, TrmData } from '@/types';
 
 interface AppContextValue {
   user: ReturnType<typeof useAuth>['user'];
@@ -20,6 +20,7 @@ interface AppContextValue {
   showCOP: boolean;
   toggleCOP: () => void;
   copRate: number;
+  trmData: TrmData;
   addTrade: (data: TradeFormData) => Promise<void>;
   editTrade: (id: string, data: Partial<TradeFormData>) => Promise<void>;
   deleteTrade: (id: string) => Promise<void>;
@@ -43,7 +44,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { trades, loading: tradesLoading, add, update, remove } = useTrades(user?.uid ?? null);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [showCOP, setShowCOP] = useState(true);
-  const [copRate, setCopRate] = useState(4200);
+  const [trmData, setTrmData] = useState<TrmData>({ rate: 4200, source: 'fallback' });
 
   useEffect(() => {
     if (!user) return;
@@ -56,11 +57,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    fetch('https://open.er-api.com/v6/latest/USD')
+    fetch('/api/trm')
       .then((r) => r.json())
-      .then((data) => {
-        if (data?.rates?.COP) setCopRate(Math.round(data.rates.COP));
-      })
+      .then((data: TrmData) => { if (data?.rate) setTrmData(data); })
       .catch(() => {});
   }, []);
 
@@ -84,7 +83,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user, loading, signIn, signUp, signOut, signInWithGoogle,
       trades, tradesLoading, stats,
       settings, showCOP, toggleCOP: () => setShowCOP((p) => !p),
-      copRate,
+      copRate: trmData.rate,
+      trmData,
       addTrade, editTrade, deleteTrade, updateSettings,
     }}>
       {children}

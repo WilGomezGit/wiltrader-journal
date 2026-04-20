@@ -11,6 +11,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   timezone: 'America/Bogota',
   strategies: ['Spring', 'LPS', 'Test', 'UTAD', 'Creek', 'JAC'],
   assets: ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSD', 'GBPJPY', 'NASDAQ', 'SP500'],
+  emotions: ['😌 Disciplinado', '😰 Ansioso', '😤 Impulsivo', '🧘 Neutral', '💪 Confiado', '😨 Miedoso'],
+  strategyText: '',
 };
 
 export async function getUserSettings(userId: string): Promise<UserSettings> {

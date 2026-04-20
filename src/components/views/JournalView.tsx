@@ -13,9 +13,10 @@ interface JournalViewProps {
   onEdit: (id: string, data: Partial<TradeFormData>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   showCOP: boolean;
+  copRate?: number;
 }
 
-export default function JournalView({ trades, strategies, assets, onAdd, onEdit, onDelete, showCOP }: JournalViewProps) {
+export default function JournalView({ trades, strategies, assets, onAdd, onEdit, onDelete, showCOP, copRate = 4200 }: JournalViewProps) {
   const [search, setSearch] = useState('');
   const [filterType, setFT] = useState<'All' | 'Buy' | 'Sell'>('All');
   const [filterStrat, setFS] = useState('All');
@@ -113,7 +114,7 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
               </span>
             </span>
           </div>
-          <JournalTable trades={filtered} onEdit={handleEdit} onDelete={handleDelete} showCOP={showCOP} />
+          <JournalTable trades={filtered} onEdit={handleEdit} onDelete={handleDelete} showCOP={showCOP} copRate={copRate} />
         </div>
       </div>
 

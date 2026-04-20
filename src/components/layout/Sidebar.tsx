@@ -31,17 +31,16 @@ export default function Sidebar({ onSignOut, traderName = 'WilTrader' }: Sidebar
     }}>
       {/* Logo */}
       <div style={{
-        padding: '18px 20px 14px',
+        paddingTop: '1.5rem', paddingBottom: '1.2rem',
+        paddingLeft: '1.5rem', paddingRight: '1.5rem',
         borderBottom: '1px solid var(--border)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <div style={{
-          width: 64, height: 64, borderRadius: 16,
+          width: 77, height: 77, borderRadius: 18,
           overflow: 'hidden',
           border: '1px solid rgba(201,162,39,0.35)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.4), 0 0 0 3px rgba(201,162,39,0.07)',
+          boxShadow: '0 6px 28px rgba(0,0,0,0.45), 0 0 0 3px rgba(201,162,39,0.08)',
           background: '#0d1018',
         }}>
           <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
