@@ -159,15 +159,15 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
       </div>
 
       {/* Result + Commission */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <div>
-          <label style={lbl}>Result Bruto (USD)</label>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'end' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <label style={{ ...lbl, whiteSpace: 'nowrap' }}>Resultado Bruto (USD)</label>
           <input type="number" value={form.result} onChange={set('result')} placeholder="+0.00"
             style={{ ...inp, color: parseFloat(form.result) >= 0 ? 'var(--green)' : 'var(--red)' }}
             onFocus={focus} onBlur={blur} />
         </div>
-        <div>
-          <label style={lbl}>Comisión (USD)</label>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <label style={{ ...lbl, whiteSpace: 'nowrap' }}>Comisión (USD)</label>
           <input type="number" value={form.commission} onChange={set('commission')} placeholder="0.00"
             style={{ ...inp, color: 'var(--red)' }}
             onFocus={focus} onBlur={blur} />
