@@ -24,6 +24,7 @@ interface AppContextValue {
   addTrade: (data: TradeFormData) => Promise<void>;
   editTrade: (id: string, data: Partial<TradeFormData>) => Promise<void>;
   deleteTrade: (id: string) => Promise<void>;
+  deleteAllTrades: () => Promise<void>;
   updateSettings: (s: Partial<UserSettings>) => Promise<void>;
 }
 
@@ -41,7 +42,7 @@ const EMPTY_STATS: Stats = {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { user, loading, signIn, signUp, signOut, signInWithGoogle } = useAuth();
-  const { trades, loading: tradesLoading, add, update, remove } = useTrades(user?.uid ?? null);
+  const { trades, loading: tradesLoading, add, update, remove, removeAll } = useTrades(user?.uid ?? null);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [showCOP, setShowCOP] = useState(true);
   const [trmData, setTrmData] = useState<TrmData>({ rate: 4200, source: 'fallback' });
@@ -70,6 +71,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addTrade = async (data: TradeFormData) => { await add(data); };
   const editTrade = async (id: string, data: Partial<TradeFormData>) => { await update(id, data); };
   const deleteTrade = async (id: string) => { await remove(id); };
+  const deleteAllTrades = async () => { await removeAll(); };
 
   const updateSettings = async (s: Partial<UserSettings>) => {
     if (!user) return;
@@ -85,7 +87,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       settings, showCOP, toggleCOP: () => setShowCOP((p) => !p),
       copRate: trmData.rate,
       trmData,
-      addTrade, editTrade, deleteTrade, updateSettings,
+      addTrade, editTrade, deleteTrade, deleteAllTrades, updateSettings,
     }}>
       {children}
     </AppContext.Provider>

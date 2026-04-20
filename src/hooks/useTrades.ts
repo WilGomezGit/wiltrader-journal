@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { subscribeToTrades, addTrade, updateTrade, deleteTrade } from '@/lib/trades';
+import { subscribeToTrades, addTrade, updateTrade, deleteTrade, deleteAllTrades } from '@/lib/trades';
 import type { Trade, TradeFormData } from '@/types';
 
 export function useTrades(userId: string | null) {
@@ -20,6 +20,7 @@ export function useTrades(userId: string | null) {
   const add = (data: TradeFormData) => userId ? addTrade(userId, data) : Promise.reject('No user');
   const update = (id: string, data: Partial<TradeFormData>) => updateTrade(id, data);
   const remove = (id: string) => deleteTrade(id);
+  const removeAll = () => userId ? deleteAllTrades(userId) : Promise.reject('No user');
 
-  return { trades, loading, add, update, remove };
+  return { trades, loading, add, update, remove, removeAll };
 }

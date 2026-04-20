@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
 import Icon from '@/components/ui/Icon';
-import type { UserSettings } from '@/types';
+import { useApp } from '@/context/AppContext';
+import type { UserSettings, Trade } from '@/types';
 
 interface TagListEditorProps {
   items: string[];
@@ -69,10 +70,31 @@ interface SettingsViewProps {
   onSave: (s: Partial<UserSettings>) => Promise<void>;
 }
 
+function exportCSV(trades: Trade[]) {
+  const headers = ['Date', 'Time', 'Asset', 'Type', 'Strategy', 'Entry', 'SL', 'TP', 'Lot Size', 'Result USD', 'COP', 'Emotion', 'Status', 'Notes'];
+  const rows = trades.map((t) => [
+    t.date, t.time || '', t.asset, t.type, t.strategy,
+    t.entry, t.sl, t.tp, t.lotSize || '',
+    t.result, t.cop, t.emotion || '', t.status,
+    `"${(t.notes || '').replace(/"/g, '""')}"`,
+  ]);
+  const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `wiltrader-backup-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function SettingsView({ settings, onSave }: SettingsViewProps) {
+  const { trades, deleteAllTrades } = useApp();
   const [local, setLocal] = useState<UserSettings>(settings);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--txt)', fontSize: 13, fontFamily: 'var(--mono)', outline: 'none' };
   const lbl: React.CSSProperties = { fontSize: 11, color: 'var(--txt2)', marginBottom: 4, display: 'block', letterSpacing: '0.04em', textTransform: 'uppercase' };
@@ -203,6 +225,32 @@ export default function SettingsView({ settings, onSave }: SettingsViewProps) {
         />
       </div>
 
+      {/* Danger Zone */}
+      <div className="fade-up" style={{ background: 'var(--bg2)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 'var(--radius)', padding: '22px', animationDelay: '220ms' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <Icon name="trash" size={16} color="var(--red)" />
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--red)' }}>Zona de Peligro</span>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--txt3)', marginBottom: 16 }}>
+          Borra permanentemente todos los trades de la base de datos. Se descargará un CSV de respaldo antes de eliminar.
+        </p>
+        <button
+          type="button"
+          onClick={() => setShowDeleteModal(true)}
+          style={{
+            padding: '9px 20px', borderRadius: 'var(--radius-sm)',
+            border: '1px solid rgba(239,68,68,0.4)',
+            background: 'rgba(239,68,68,0.08)', color: 'var(--red)',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.18)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; }}
+        >
+          <Icon name="trash" size={14} /> Borrar todos los trades
+        </button>
+      </div>
+
       {/* Firebase status */}
       <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: '22px', animationDelay: '200ms' }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Firebase</div>
@@ -233,6 +281,75 @@ export default function SettingsView({ settings, onSave }: SettingsViewProps) {
           {saving ? 'Guardando...' : 'Guardar Cambios'}
         </button>
       </div>
+
+      {/* Delete confirmation modal */}
+      {showDeleteModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div className="fade-up" style={{
+            background: 'var(--bg2)', border: '1px solid rgba(239,68,68,0.3)',
+            borderRadius: 'var(--radius)', padding: '32px', width: 420, maxWidth: '90vw',
+            boxShadow: '0 40px 80px rgba(0,0,0,0.7)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="trash" size={18} color="var(--red)" />
+              </div>
+              <span style={{ fontSize: 16, fontWeight: 700 }}>¿Borrar todos los trades?</span>
+            </div>
+
+            <p style={{ fontSize: 13, color: 'var(--txt2)', lineHeight: 1.6, marginBottom: 8 }}>
+              Esta acción es <strong style={{ color: 'var(--red)' }}>permanente e irreversible</strong>. Se eliminarán los <strong>{trades.length} trades</strong> de Firestore.
+            </p>
+            <p style={{ fontSize: 13, color: 'var(--txt3)', marginBottom: 24 }}>
+              Si confirmas, se descargará automáticamente un archivo CSV con todos tus datos antes de borrar.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                style={{
+                  flex: 1, padding: '11px', borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border2)', background: 'transparent',
+                  color: 'var(--txt2)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                No, cancelar
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  exportCSV(trades);
+                  await new Promise((r) => setTimeout(r, 800));
+                  await deleteAllTrades();
+                  setDeleting(false);
+                  setShowDeleteModal(false);
+                }}
+                style={{
+                  flex: 1, padding: '11px', borderRadius: 'var(--radius-sm)',
+                  border: 'none', background: deleting ? 'rgba(239,68,68,0.4)' : 'var(--red)',
+                  color: '#fff', fontSize: 13, fontWeight: 700,
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+              >
+                {deleting ? (
+                  <><span style={{ width: 14, height: 14, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} /> Borrando...</>
+                ) : (
+                  <><Icon name="trash" size={14} /> Sí, descargar y borrar</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

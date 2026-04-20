@@ -69,3 +69,10 @@ export async function updateTrade(tradeId: string, data: Partial<TradeFormData>)
 export async function deleteTrade(tradeId: string): Promise<void> {
   await deleteDoc(doc(db, TRADES_COLLECTION, tradeId));
 }
+
+export async function deleteAllTrades(userId: string): Promise<void> {
+  const { getDocs } = await import('firebase/firestore');
+  const q = query(collection(db, TRADES_COLLECTION), where('userId', '==', userId));
+  const snap = await getDocs(q);
+  await Promise.all(snap.docs.map((d) => deleteDoc(doc(db, TRADES_COLLECTION, d.id))));
+}
