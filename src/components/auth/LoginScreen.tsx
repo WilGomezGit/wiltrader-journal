@@ -91,14 +91,7 @@ export default function LoginScreen({ onLogin, onSignUp, onGoogle }: LoginScreen
           }}>
             <img src="/logo.png" alt="WilTrader Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
-          <div style={{
-            fontSize: 28, fontWeight: 700, fontFamily: "'Dancing Script', cursive",
-            background: 'linear-gradient(135deg,#c9a227,#f5d87a,#c9a227)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1,
-          }}>
-            WilTrader
-          </div>
-          <div style={{ fontSize: 11, color: '#7a7060', letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 6 }}>
+          <div style={{ fontSize: 11, color: '#7a7060', letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4 }}>
             Trading Journal Pro
           </div>
         </div>

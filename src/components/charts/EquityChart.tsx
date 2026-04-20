@@ -183,26 +183,6 @@ export default function EquityChart({ data }: EquityChartProps) {
       )}
 
 
-      {/* Resting pulse at end after animation */}
-      {animated && pts.length > 0 && (
-        <>
-          <circle
-            cx={last.x}
-            cy={last.y}
-            r="6"
-            fill="#c9a227"
-            opacity="0.2"
-            style={{ animation: 'pulse 2s ease-in-out 2s infinite' }}
-          />
-          <circle
-            cx={last.x}
-            cy={last.y}
-            r="3"
-            fill="#f5d87a"
-            style={{ animation: 'fadeIn 0.3s ease 1.9s both' }}
-          />
-        </>
-      )}
     </svg>
   );
 }

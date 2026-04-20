@@ -20,7 +20,7 @@ export default function MetricCard({ label, value, sub, sub2, trend, spark, spar
       className="fade-up"
       style={{
         background: 'var(--bg2)',
-        border: `1px solid ${highlight ? 'var(--gold)' : 'rgba(201,162,39,0.14)'}`,
+        border: `1px solid ${highlight ? 'var(--gold)' : 'rgba(201,162,39,0.35)'}`,
         borderRadius: 14,
         padding: '18px 20px',
         flex: 1,
