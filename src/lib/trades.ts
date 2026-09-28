@@ -1,16 +1,19 @@
 import {
-  collection, doc, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, onSnapshot, serverTimestamp, Timestamp
+  collection, doc, addDoc, updateDoc, deleteDoc, writeBatch,
+  query, where, orderBy, onSnapshot, getDocs,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Trade, TradeFormData, TradeStatus } from '@/types';
+import type { ImportedTrade } from './mtImport';
 
 const TRADES_COLLECTION = 'trades';
+const BATCH_LIMIT = 450;
 
-export function subscribeToTrades(userId: string, callback: (trades: Trade[]) => void) {
+export function subscribeToTrades(userId: string, accountId: string, callback: (trades: Trade[]) => void) {
   const q = query(
     collection(db, TRADES_COLLECTION),
     where('userId', '==', userId),
+    where('accountId', '==', accountId),
     orderBy('createdAt', 'desc')
   );
   return onSnapshot(q, (snap) => {
@@ -19,10 +22,11 @@ export function subscribeToTrades(userId: string, callback: (trades: Trade[]) =>
   });
 }
 
-export async function addTrade(userId: string, data: TradeFormData): Promise<string> {
+export async function addTrade(userId: string, accountId: string, data: TradeFormData): Promise<string> {
   const result = parseFloat(data.result);
   const ref = await addDoc(collection(db, TRADES_COLLECTION), {
     userId,
+    accountId,
     date: data.date,
     asset: data.asset,
     type: data.type,
@@ -72,9 +76,62 @@ export async function deleteTrade(tradeId: string): Promise<void> {
   await deleteDoc(doc(db, TRADES_COLLECTION, tradeId));
 }
 
-export async function deleteAllTrades(userId: string): Promise<void> {
-  const { getDocs } = await import('firebase/firestore');
-  const q = query(collection(db, TRADES_COLLECTION), where('userId', '==', userId));
+export async function deleteAllTrades(userId: string, accountId: string): Promise<void> {
+  const q = query(
+    collection(db, TRADES_COLLECTION),
+    where('userId', '==', userId),
+    where('accountId', '==', accountId)
+  );
   const snap = await getDocs(q);
   await Promise.all(snap.docs.map((d) => deleteDoc(doc(db, TRADES_COLLECTION, d.id))));
+}
+
+/** Bulk-imports parsed broker-statement trades (e.g. from a MetaTrader report) using batched writes. */
+export async function bulkImportTrades(
+  userId: string,
+  accountId: string,
+  trades: ImportedTrade[],
+  opts: { strategy: string; copRate: number }
+): Promise<number> {
+  let written = 0;
+  for (let i = 0; i < trades.length; i += BATCH_LIMIT) {
+    const chunk = trades.slice(i, i + BATCH_LIMIT);
+    const batch = writeBatch(db);
+    for (const t of chunk) {
+      const ref = doc(collection(db, TRADES_COLLECTION));
+      batch.set(ref, {
+        userId,
+        accountId,
+        date: t.date,
+        time: t.time,
+        asset: t.asset,
+        type: t.type,
+        strategy: opts.strategy,
+        entry: t.entry,
+        sl: t.sl,
+        tp: t.tp,
+        lotSize: t.lotSize,
+        result: t.result,
+        commission: t.commission,
+        cop: Math.round((t.result - t.commission) * opts.copRate),
+        emotion: '',
+        notes: `Importado desde MetaTrader · Posición #${t.ticket}`,
+        status: t.status,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+    await batch.commit();
+    written += chunk.length;
+  }
+  return written;
+}
+
+/** One-time migration: assigns any legacy trades (created before multi-account support) to the given account. */
+export async function migrateLegacyTrades(userId: string, accountId: string): Promise<number> {
+  const q = query(collection(db, TRADES_COLLECTION), where('userId', '==', userId));
+  const snap = await getDocs(q);
+  const legacy = snap.docs.filter((d) => !d.data().accountId);
+  await Promise.all(legacy.map((d) => updateDoc(doc(db, TRADES_COLLECTION, d.id), { accountId })));
+  return legacy.length;
 }

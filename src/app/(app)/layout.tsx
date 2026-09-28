@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppProvider, useApp } from '@/context/AppContext';
 import Sidebar from '@/components/layout/Sidebar';
+import AccountSwitcher from '@/components/layout/AccountSwitcher';
 import { useFirebaseStatus } from '@/hooks/useFirebaseStatus';
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -41,6 +42,8 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
           background: 'var(--bg2)',
           flexShrink: 0,
         }}>
+          <AccountSwitcher />
+
           {/* Firebase status */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 5,
