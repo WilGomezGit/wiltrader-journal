@@ -117,14 +117,14 @@ export default function AnalyticsView({ trades, stats, strategies, assets }: Ana
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Resumen del Período</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
-            { label: 'Total P/L',        val: `${stats.totalPL >= 0 ? '+' : ''}$${stats.totalPL.toLocaleString()}`, color: stats.totalPL >= 0 ? 'var(--green)' : 'var(--red)' },
-            { label: 'Total COP',        val: `${stats.totalPLCOP >= 0 ? '+' : ''}${Math.abs(stats.totalPLCOP).toLocaleString()}`, color: stats.totalPLCOP >= 0 ? 'var(--green)' : 'var(--red)' },
-            { label: 'Mejor Racha',      val: `${stats.winStreak} trades`,  color: 'var(--green)' },
-            { label: 'Peor Racha',       val: `${stats.lossStreak} trades`, color: 'var(--red)'   },
-            { label: 'Max Drawdown',     val: `${stats.maxDrawdown.toFixed(1)}%`, color: 'var(--red)'   },
-            { label: 'Sharpe Ratio',     val: stats.sharpeRatio.toFixed(2), color: stats.sharpeRatio > 1 ? 'var(--gold2)' : 'var(--txt)' },
-            { label: 'Expectativa',      val: `$${stats.expectancy.toFixed(2)}`, color: stats.expectancy >= 0 ? 'var(--green)' : 'var(--red)' },
-            { label: 'Profit Factor',    val: stats.profitFactor > 0 ? stats.profitFactor.toFixed(2) : '—', color: 'var(--gold2)' },
+            { label: 'P/L Total',          val: `${stats.totalPL >= 0 ? '+' : ''}$${stats.totalPL.toLocaleString()}`, color: stats.totalPL >= 0 ? 'var(--green)' : 'var(--red)' },
+            { label: 'Total COP',          val: `${stats.totalPLCOP >= 0 ? '+' : ''}${Math.abs(stats.totalPLCOP).toLocaleString()}`, color: stats.totalPLCOP >= 0 ? 'var(--green)' : 'var(--red)' },
+            { label: 'Mejor Racha',        val: `${stats.winStreak} trades`,  color: 'var(--green)' },
+            { label: 'Peor Racha',         val: `${stats.lossStreak} trades`, color: 'var(--red)'   },
+            { label: 'Reducción Máxima',   val: `${stats.maxDrawdown.toFixed(1)}%`, color: 'var(--red)'   },
+            { label: 'Ratio de Sharpe',    val: stats.sharpeRatio.toFixed(2), color: stats.sharpeRatio > 1 ? 'var(--gold2)' : 'var(--txt)' },
+            { label: 'Expectativa',        val: `$${stats.expectancy.toFixed(2)}`, color: stats.expectancy >= 0 ? 'var(--green)' : 'var(--red)' },
+            { label: 'Factor de Ganancia', val: stats.profitFactor > 0 ? stats.profitFactor.toFixed(2) : '—', color: 'var(--gold2)' },
           ].map((s) => (
             <div key={s.label} style={{ background: 'var(--bg3)', borderRadius: 10, padding: '12px 14px' }}>
               <div style={{ fontSize: 10, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{s.label}</div>
@@ -136,7 +136,7 @@ export default function AnalyticsView({ trades, stats, strategies, assets }: Ana
 
       {/* Equity Curve full width */}
       <div style={{ gridColumn: '1 / -1', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px' }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Equity Curve Completa</div>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Curva de Equity Completa</div>
         <EquityChart data={stats.equityCurve.length > 1 ? stats.equityCurve : [20000, 20000]} />
       </div>
     </div>

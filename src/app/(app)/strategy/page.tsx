@@ -25,7 +25,7 @@ export default function StrategyPage() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" style={tabBtn(tab === 'analyzer')} onClick={() => setTab('analyzer')}>
-          <Icon name="analytics" size={13} /> Strategy Analyzer
+          <Icon name="analytics" size={13} /> Analizador de Estrategia
         </button>
         <button type="button" style={tabBtn(tab === 'plan')} onClick={() => setTab('plan')}>
           <Icon name="strategy" size={13} /> Mi Plan

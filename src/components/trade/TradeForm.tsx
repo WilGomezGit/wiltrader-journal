@@ -99,13 +99,13 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
       {/* Asset + Strategy */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
-          <label style={lbl}>Asset</label>
+          <label style={lbl}>Activo</label>
           <select value={form.asset} onChange={set('asset')} style={{ ...inp, cursor: 'pointer' }} onFocus={focus} onBlur={blur}>
             {assets.map((a) => <option key={a}>{a}</option>)}
           </select>
         </div>
         <div>
-          <label style={lbl}>Strategy</label>
+          <label style={lbl}>Estrategia</label>
           <select value={form.strategy} onChange={set('strategy')} style={{ ...inp, cursor: 'pointer' }} onFocus={focus} onBlur={blur}>
             {strategies.map((s) => <option key={s}>{s}</option>)}
           </select>
@@ -115,18 +115,18 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
       {/* Date + Time */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
-          <label style={lbl}>Date</label>
+          <label style={lbl}>Fecha</label>
           <input type="text" value={form.date} onChange={set('date')} placeholder="MM/DD/YYYY" style={inp} onFocus={focus} onBlur={blur} />
         </div>
         <div>
-          <label style={lbl}>Time</label>
+          <label style={lbl}>Hora</label>
           <input type="time" value={form.time} onChange={set('time')} style={inp} onFocus={focus} onBlur={blur} />
         </div>
       </div>
 
       {/* Buy / Sell */}
       <div>
-        <label style={lbl}>Type</label>
+        <label style={lbl}>Tipo</label>
         <div style={{ display: 'flex', borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid var(--border2)' }}>
           {(['Buy', 'Sell'] as const).map((t) => (
             <button key={t} type="button" onClick={() => setForm((f) => ({ ...f, type: t }))} style={{
@@ -134,14 +134,14 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
               background: form.type === t ? (t === 'Buy' ? 'var(--green)' : 'var(--red)') : 'var(--bg4)',
               color: form.type === t ? '#fff' : 'var(--txt2)',
               cursor: 'pointer', transition: 'all 0.15s',
-            }}>{t}</button>
+            }}>{t === 'Buy' ? 'Compra' : 'Venta'}</button>
           ))}
         </div>
       </div>
 
       {/* Entry / SL / TP */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-        {(['Entry', 'SL', 'TP'] as const).map((label, idx) => {
+        {(['Entrada', 'SL', 'TP'] as const).map((label, idx) => {
           const key = (['entry', 'sl', 'tp'] as const)[idx];
           return (
             <div key={key}>
@@ -154,7 +154,7 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
 
       {/* Lot Size */}
       <div>
-        <label style={lbl}>Lot Size</label>
+        <label style={lbl}>Tamaño del Lote</label>
         <input type="number" step="0.01" value={form.lotSize} onChange={set('lotSize')} placeholder="0.01" style={inp} onFocus={focus} onBlur={blur} />
       </div>
 
@@ -186,7 +186,7 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
             border: `1px solid ${net >= 0 ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
-            <span style={{ fontSize: 11, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Result Neto</span>
+            <span style={{ fontSize: 11, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Resultado Neto</span>
             <span style={{ fontSize: 15, fontWeight: 700, fontFamily: 'var(--mono)', color: net >= 0 ? 'var(--green)' : 'var(--red)' }}>
               {net >= 0 ? '+' : ''}{net.toFixed(2)} USD
             </span>
@@ -225,7 +225,7 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
 
       {/* Notes */}
       <div>
-        <label style={lbl}>Notes</label>
+        <label style={lbl}>Notas</label>
         <textarea value={form.notes} onChange={set('notes')} rows={2}
           placeholder="Análisis de la operación..."
           style={{ ...inp, resize: 'none', lineHeight: 1.5 }} onFocus={focus} onBlur={blur} />
@@ -242,7 +242,7 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
           onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
           onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
-          {editTrade ? 'Update Trade' : 'Save Trade'}
+          {editTrade ? 'Actualizar Trade' : 'Guardar Trade'}
         </button>
         <button type="button" onClick={onCancel} style={{
           padding: '11px 20px', borderRadius: 'var(--radius-sm)',
@@ -252,7 +252,7 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
           onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg4)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
-          Cancel
+          Cancelar
         </button>
       </div>
     </div>

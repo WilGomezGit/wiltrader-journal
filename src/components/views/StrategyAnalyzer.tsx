@@ -3,10 +3,10 @@ import { useMemo, useState, useId } from 'react';
 import { format, startOfDay, startOfWeek, startOfMonth, startOfYear } from 'date-fns';
 import type { Trade } from '@/types';
 
-type PeriodMode = 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
-type LongShort = 'All' | 'Long' | 'Short';
-type WLFilter = 'All' | 'Win' | 'Loss';
-type TimeBase = 'Exit Time' | 'Entry Time';
+type PeriodMode = 'Diario' | 'Semanal' | 'Mensual' | 'Anual';
+type LongShort = 'Todos' | 'Compra' | 'Venta';
+type WLFilter = 'Todos' | 'Ganadoras' | 'Perdedoras';
+type TimeBase = 'Hora de Salida' | 'Hora de Entrada';
 type Display = '$' | '%';
 type GraphMetric = 'netProfit' | 'drawdown' | 'trades';
 
@@ -38,15 +38,15 @@ interface Row {
 const net = (t: Trade) => t.result - (t.commission || 0);
 
 function bucketFor(date: Date, mode: PeriodMode): { key: string; label: string; sortDate: Date } {
-  if (mode === 'Weekly') {
+  if (mode === 'Semanal') {
     const d = startOfWeek(date, { weekStartsOn: 1 });
     return { key: format(d, 'RRRR-II'), label: format(d, 'M/d/yy'), sortDate: d };
   }
-  if (mode === 'Monthly') {
+  if (mode === 'Mensual') {
     const d = startOfMonth(date);
     return { key: format(d, 'yyyy-MM'), label: format(d, 'MMM yyyy'), sortDate: d };
   }
-  if (mode === 'Yearly') {
+  if (mode === 'Anual') {
     const d = startOfYear(date);
     return { key: format(d, 'yyyy'), label: format(d, 'yyyy'), sortDate: d };
   }
@@ -161,21 +161,21 @@ function AnalyzerChart({ rows, metric }: { rows: Row[]; metric: GraphMetric }) {
 }
 
 export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAnalyzerProps) {
-  const [period, setPeriod] = useState<PeriodMode>('Daily');
-  const [longShort, setLongShort] = useState<LongShort>('All');
-  const [wl, setWl] = useState<WLFilter>('All');
-  const [timeBase, setTimeBase] = useState<TimeBase>('Exit Time');
+  const [period, setPeriod] = useState<PeriodMode>('Diario');
+  const [longShort, setLongShort] = useState<LongShort>('Todos');
+  const [wl, setWl] = useState<WLFilter>('Todos');
+  const [timeBase, setTimeBase] = useState<TimeBase>('Hora de Salida');
   const [display, setDisplay] = useState<Display>('$');
   const [graphMetric, setGraphMetric] = useState<GraphMetric>('netProfit');
 
   void timeBase; // reserved: entry/exit time base parity — this journal stores a single trade date
 
   const filtered = useMemo(() => trades.filter((t) => {
-    if (longShort === 'Long' && t.type !== 'Buy') return false;
-    if (longShort === 'Short' && t.type !== 'Sell') return false;
+    if (longShort === 'Compra' && t.type !== 'Buy') return false;
+    if (longShort === 'Venta' && t.type !== 'Sell') return false;
     const n = net(t);
-    if (wl === 'Win' && n < 0) return false;
-    if (wl === 'Loss' && n >= 0) return false;
+    if (wl === 'Ganadoras' && n < 0) return false;
+    if (wl === 'Perdedoras' && n >= 0) return false;
     return true;
   }), [trades, longShort, wl]);
 
@@ -261,20 +261,20 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
 
   const columns: { key: keyof Row; label: string; render: (r: Row) => string; color?: (r: Row) => string }[] = [
     { key: 'count', label: '#', render: (r) => String(r.count) },
-    { key: 'cumNetProfit', label: 'Cum. Net Profit', render: (r) => fmtMoney(r.cumNetProfit), color: (r) => r.cumNetProfit >= 0 ? 'var(--green)' : 'var(--red)' },
-    { key: 'grossProfit', label: 'Gross Profit', render: (r) => fmtMoney(r.grossProfit), color: () => 'var(--green)' },
-    { key: 'grossLoss', label: 'Gross Loss', render: (r) => fmtMoney(r.grossLoss), color: () => 'var(--red)' },
-    { key: 'commission', label: 'Commission', render: (r) => fmtMoney(r.commission) },
-    { key: 'cumDrawdown', label: 'Cum. Max DD', render: (r) => `${r.cumDrawdown.toFixed(2)}%`, color: () => 'var(--red)' },
-    { key: 'winRate', label: '%W', render: (r) => `${r.winRate.toFixed(1)}%` },
-    { key: 'avgTrade', label: 'Avg. Trade', render: (r) => fmtMoney(r.avgTrade), color: (r) => r.avgTrade >= 0 ? 'var(--green)' : 'var(--red)' },
-    { key: 'avgWin', label: 'Avg. Win', render: (r) => fmtMoney(r.avgWin), color: () => 'var(--green)' },
-    { key: 'avgLoss', label: 'Avg. Loss', render: (r) => fmtMoney(r.avgLoss), color: () => 'var(--red)' },
-    { key: 'largestWin', label: 'Largest Win', render: (r) => fmtMoney(r.largestWin), color: () => 'var(--green)' },
-    { key: 'largestLoss', label: 'Largest Loss', render: (r) => fmtMoney(r.largestLoss), color: () => 'var(--red)' },
-    { key: 'maxWinStreak', label: 'Max Win Streak', render: (r) => String(r.maxWinStreak) },
-    { key: 'maxLossStreak', label: 'Max Loss Streak', render: (r) => String(r.maxLossStreak) },
-    { key: 'pctOfTrades', label: '% Tr.', render: (r) => `${r.pctOfTrades.toFixed(1)}%` },
+    { key: 'cumNetProfit', label: 'Ganancia Neta Acum.', render: (r) => fmtMoney(r.cumNetProfit), color: (r) => r.cumNetProfit >= 0 ? 'var(--green)' : 'var(--red)' },
+    { key: 'grossProfit', label: 'Ganancia Bruta', render: (r) => fmtMoney(r.grossProfit), color: () => 'var(--green)' },
+    { key: 'grossLoss', label: 'Pérdida Bruta', render: (r) => fmtMoney(r.grossLoss), color: () => 'var(--red)' },
+    { key: 'commission', label: 'Comisión', render: (r) => fmtMoney(r.commission) },
+    { key: 'cumDrawdown', label: 'Máx. Reducción Acum.', render: (r) => `${r.cumDrawdown.toFixed(2)}%`, color: () => 'var(--red)' },
+    { key: 'winRate', label: '% Ganadas', render: (r) => `${r.winRate.toFixed(1)}%` },
+    { key: 'avgTrade', label: 'Trade Prom.', render: (r) => fmtMoney(r.avgTrade), color: (r) => r.avgTrade >= 0 ? 'var(--green)' : 'var(--red)' },
+    { key: 'avgWin', label: 'Ganancia Prom.', render: (r) => fmtMoney(r.avgWin), color: () => 'var(--green)' },
+    { key: 'avgLoss', label: 'Pérdida Prom.', render: (r) => fmtMoney(r.avgLoss), color: () => 'var(--red)' },
+    { key: 'largestWin', label: 'Mayor Ganancia', render: (r) => fmtMoney(r.largestWin), color: () => 'var(--green)' },
+    { key: 'largestLoss', label: 'Mayor Pérdida', render: (r) => fmtMoney(r.largestLoss), color: () => 'var(--red)' },
+    { key: 'maxWinStreak', label: 'Racha Ganadora Máx.', render: (r) => String(r.maxWinStreak) },
+    { key: 'maxLossStreak', label: 'Racha Perdedora Máx.', render: (r) => String(r.maxLossStreak) },
+    { key: 'pctOfTrades', label: '% Trades', render: (r) => `${r.pctOfTrades.toFixed(1)}%` },
   ];
 
   const th: React.CSSProperties = {
@@ -295,11 +295,11 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
         background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)',
         padding: '14px 18px', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-end',
       }}>
-        <FilterField label="Display" value={display === '$' ? 'Analysis $' : 'Analysis %'} options={['Analysis $', 'Analysis %']} onChange={(v) => setDisplay(v.includes('%') ? '%' : '$')} />
-        <FilterField label="Period" value={period} options={['Daily', 'Weekly', 'Monthly', 'Yearly']} onChange={(v) => setPeriod(v as PeriodMode)} />
-        <FilterField label="Long/Short" value={longShort} options={['All', 'Long', 'Short']} onChange={(v) => setLongShort(v as LongShort)} />
-        <FilterField label="W/L" value={wl} options={['All', 'Win', 'Loss']} onChange={(v) => setWl(v as WLFilter)} />
-        <FilterField label="Time base" value={timeBase} options={['Exit Time', 'Entry Time']} onChange={(v) => setTimeBase(v as TimeBase)} />
+        <FilterField label="Mostrar" value={display === '$' ? 'Análisis $' : 'Análisis %'} options={['Análisis $', 'Análisis %']} onChange={(v) => setDisplay(v.includes('%') ? '%' : '$')} />
+        <FilterField label="Período" value={period} options={['Diario', 'Semanal', 'Mensual', 'Anual']} onChange={(v) => setPeriod(v as PeriodMode)} />
+        <FilterField label="Compra/Venta" value={longShort} options={['Todos', 'Compra', 'Venta']} onChange={(v) => setLongShort(v as LongShort)} />
+        <FilterField label="G/P" value={wl} options={['Todos', 'Ganadoras', 'Perdedoras']} onChange={(v) => setWl(v as WLFilter)} />
+        <FilterField label="Base de Tiempo" value={timeBase} options={['Hora de Salida', 'Hora de Entrada']} onChange={(v) => setTimeBase(v as TimeBase)} />
         <div style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--txt3)', fontFamily: 'var(--mono)' }}>
           {filtered.length} trades · {rows.length} períodos
         </div>
@@ -357,11 +357,11 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
         padding: '16px 18px', flexShrink: 0, animationDelay: '100ms',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--txt2)' }}>Graph</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--txt2)' }}>Gráfico</span>
           <select value={graphMetric} onChange={(e) => setGraphMetric(e.target.value as GraphMetric)} style={selStyle}>
-            <option value="netProfit">Cumulative Net Profit</option>
-            <option value="drawdown">Cumulative Max Drawdown</option>
-            <option value="trades">Trades per Period</option>
+            <option value="netProfit">Ganancia Neta Acumulada</option>
+            <option value="drawdown">Reducción Máxima Acumulada</option>
+            <option value="trades">Trades por Período</option>
           </select>
         </div>
         <AnalyzerChart rows={rows} metric={graphMetric} />

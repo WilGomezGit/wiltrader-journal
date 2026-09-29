@@ -60,7 +60,7 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
               boxShadow: fbConnected ? '0 0 6px #22c55e' : 'none',
               animation: fbConnected ? 'pulse 2s ease-in-out infinite' : 'none',
             }} />
-            {fbConnected === null ? 'Connecting...' : fbConnected ? 'Firebase Connected' : 'Firebase Offline'}
+            {fbConnected === null ? 'Conectando...' : fbConnected ? 'Firebase Conectado' : 'Firebase Desconectado'}
           </div>
 
           {/* USD / COP toggle */}
@@ -77,7 +77,7 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
               transition: 'all 0.15s', fontFamily: 'var(--mono)',
             }}
           >
-            {showCOP ? '🇨🇴 COP' : '🇺🇸 USD'} Toggle
+            {showCOP ? '🇨🇴 COP' : '🇺🇸 USD'} Cambiar
           </button>
 
           {/* User dot */}
