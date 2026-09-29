@@ -113,10 +113,17 @@ function AnalyzerChart({ rows, metric }: { rows: Row[]; metric: GraphMetric }) {
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }}>
       <defs>
-        <linearGradient id={`analyzerFill-${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#22c55e" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="#22c55e" stopOpacity="0.02" />
+        <linearGradient id={`analyzerFillGold-${uid}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#c9a227" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="#c9a227" stopOpacity="0.04" />
         </linearGradient>
+        <linearGradient id={`analyzerFillRed-${uid}`} x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="#ef4444" stopOpacity="0.04" />
+        </linearGradient>
+        {/* Splits the area/line into a profit half (above the zero line) and a loss half (below it). */}
+        <clipPath id={`clipAbove-${uid}`}><rect x="0" y="0" width={W} height={Math.max(zeroY, 0)} /></clipPath>
+        <clipPath id={`clipBelow-${uid}`}><rect x="0" y={zeroY} width={W} height={Math.max(H - zeroY, 0)} /></clipPath>
       </defs>
 
       {yLabels.map((v, i) => {
@@ -129,8 +136,18 @@ function AnalyzerChart({ rows, metric }: { rows: Row[]; metric: GraphMetric }) {
         );
       })}
 
-      {areaPath && <path d={areaPath} fill={`url(#analyzerFill-${uid})`} />}
-      {pts.length > 1 && <path d={linePath} fill="none" stroke="#22c55e" strokeWidth="1.8" />}
+      {areaPath && (
+        <>
+          <path d={areaPath} fill={`url(#analyzerFillGold-${uid})`} clipPath={`url(#clipAbove-${uid})`} />
+          <path d={areaPath} fill={`url(#analyzerFillRed-${uid})`} clipPath={`url(#clipBelow-${uid})`} />
+        </>
+      )}
+      {pts.length > 1 && (
+        <>
+          <path d={linePath} fill="none" stroke="#c9a227" strokeWidth="1.8" clipPath={`url(#clipAbove-${uid})`} />
+          <path d={linePath} fill="none" stroke="#ef4444" strokeWidth="1.8" clipPath={`url(#clipBelow-${uid})`} />
+        </>
+      )}
 
       {rows.map((r, i) => (
         i % labelStep === 0 ? (
