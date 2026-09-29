@@ -22,8 +22,14 @@ export default function ImportTradesModal({ onClose }: ImportTradesModalProps) {
   const [strategy, setStrategy] = useState('Importado MT5');
   const [importedCount, setImportedCount] = useState(0);
 
+  const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB — broker statements are small; reject oversized/unexpected files up front.
+
   const handleFile = async (file: File) => {
     setError('');
+    if (file.size > MAX_FILE_SIZE) {
+      setError('El archivo es demasiado grande (máx. 15MB). Verifica que sea un reporte de historial válido.');
+      return;
+    }
     try {
       const result = await parseMtReport(file);
       setParsed(result);
