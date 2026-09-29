@@ -34,7 +34,7 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
   if (rows.length === 0) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: 'var(--txt3)', fontSize: 13 }}>
-        No trades yet. Add your first trade to get started.
+        Aún no hay trades. Agrega tu primer trade para comenzar.
       </div>
     );
   }
@@ -44,12 +44,12 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
-            {['Date', 'Time', 'Asset', 'Type', 'Strategy', 'Gross (USD)', 'Commission', 'Net (USD)',
+            {['Fecha', 'Hora', 'Activo', 'Tipo', 'Estrategia', 'Bruto (USD)', 'Comisión', 'Neto (USD)',
               ...(showCOP ? ['COP'] : []),
-              'Emotion', 'Status'].map((h) => (
+              'Emoción', 'Estado'].map((h) => (
               <th key={h} style={th}>{h}</th>
             ))}
-            {!compact && <th style={th}>Actions</th>}
+            {!compact && <th style={th}>Acciones</th>}
           </tr>
         </thead>
         <tbody>
@@ -71,7 +71,7 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
                     background: t.type === 'Buy' ? 'var(--green-dim)' : 'var(--red-dim)',
                     color: t.type === 'Buy' ? 'var(--green)' : 'var(--red)',
                     border: `1px solid ${t.type === 'Buy' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                  }}>{t.type}</span>
+                  }}>{t.type === 'Buy' ? 'Compra' : 'Venta'}</span>
                 </td>
                 <td style={{ ...td, color: 'var(--gold)' }}>
                   <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, background: 'var(--gold-dim)', border: '1px solid rgba(201,162,39,0.2)' }}>
@@ -98,7 +98,7 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
                     padding: '2px 8px', borderRadius: 4, fontSize: 11,
                     background: t.status === 'Win' ? 'var(--green-dim)' : t.status === 'BE' ? 'var(--gold-dim)' : 'var(--red-dim)',
                     color: t.status === 'Win' ? 'var(--green)' : t.status === 'BE' ? 'var(--gold)' : 'var(--red)',
-                  }}>{t.status}</span>
+                  }}>{t.status === 'Win' ? 'Ganancia' : t.status === 'BE' ? 'B/E' : 'Pérdida'}</span>
                 </td>
                 {!compact && (
                   <td style={td}>
@@ -111,7 +111,7 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
                         onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.color = 'var(--gold)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--txt2)'; }}
                       >
-                        <Icon name="edit" size={11} /> Edit
+                        <Icon name="edit" size={11} /> Editar
                       </button>
                       {onDelete && (
                         <button type="button" onClick={() => onDelete(t)} style={{

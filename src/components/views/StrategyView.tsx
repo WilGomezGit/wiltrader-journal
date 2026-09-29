@@ -85,7 +85,7 @@ export default function StrategyView({ strategyText, onSave }: StrategyViewProps
 
       {/* Content */}
       <div className="fade-up" style={{
-        flex: 1, background: 'var(--bg2)', border: 'var(--card-border)',
+        flex: 1, minHeight: 0, background: 'var(--bg2)', border: 'var(--card-border)',
         borderRadius: 'var(--radius)', overflow: 'hidden',
         animationDelay: '80ms',
       }}>

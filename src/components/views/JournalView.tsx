@@ -53,7 +53,7 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
 
   return (
     <div style={{ display: 'flex', gap: 16, height: '100%' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, overflowY: 'auto' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
         {/* Filters */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
@@ -63,7 +63,7 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search asset, strategy, notes..."
+              placeholder="Buscar activo, estrategia, notas..."
               style={{
                 width: '100%', padding: '9px 12px 9px 34px',
                 background: 'var(--bg2)', border: '1px solid var(--border)',
@@ -78,7 +78,7 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
               background: filterType === f ? 'var(--gold-dim)' : 'var(--bg2)',
               color: filterType === f ? 'var(--gold)' : 'var(--txt3)',
               fontSize: 12, cursor: 'pointer',
-            }}>{f}</button>
+            }}>{f === 'All' ? 'Todos' : f === 'Buy' ? 'Compra' : 'Venta'}</button>
           ))}
 
           {(['All', 'Win', 'Loss'] as const).map((f) => (
@@ -87,7 +87,7 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
               background: filterStatus === f ? (f === 'Win' ? 'var(--green-dim)' : f === 'Loss' ? 'var(--red-dim)' : 'var(--gold-dim)') : 'var(--bg2)',
               color: filterStatus === f ? (f === 'Win' ? 'var(--green)' : f === 'Loss' ? 'var(--red)' : 'var(--gold)') : 'var(--txt3)',
               fontSize: 12, cursor: 'pointer',
-            }}>{f}</button>
+            }}>{f === 'All' ? 'Todos' : f === 'Win' ? 'Ganancia' : 'Pérdida'}</button>
           ))}
 
           <select
@@ -95,7 +95,7 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
             onChange={(e) => setFS(e.target.value)}
             style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--txt2)', fontSize: 12, cursor: 'pointer', outline: 'none' }}
           >
-            <option value="All">All Strategies</option>
+            <option value="All">Todas las Estrategias</option>
             {strategies.map((s) => <option key={s}>{s}</option>)}
           </select>
 
@@ -126,9 +126,9 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
 
       {/* Side Form */}
       {showForm && (
-        <div style={{ width: 300, flexShrink: 0, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px', overflowY: 'auto' }}>
+        <div style={{ width: 300, flexShrink: 0, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px', overflowY: 'auto', minHeight: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <span style={{ fontWeight: 600, fontSize: 14 }}>{editTrade ? 'Edit Trade' : 'New Trade'}</span>
+            <span style={{ fontWeight: 600, fontSize: 14 }}>{editTrade ? 'Editar Trade' : 'Nuevo Trade'}</span>
             <button type="button" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer' }}>
               <Icon name="close" size={16} />
             </button>

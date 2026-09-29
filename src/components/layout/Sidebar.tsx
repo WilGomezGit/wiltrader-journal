@@ -10,11 +10,11 @@ interface SidebarProps {
 }
 
 const nav = [
-  { href: '/dashboard', icon: 'dashboard' as const, label: 'Dashboard'  },
-  { href: '/journal',   icon: 'journal'   as const, label: 'Journal'    },
-  { href: '/analytics', icon: 'analytics' as const, label: 'Analytics'  },
+  { href: '/dashboard', icon: 'dashboard' as const, label: 'Panel'      },
+  { href: '/journal',   icon: 'journal'   as const, label: 'Diario'     },
+  { href: '/analytics', icon: 'analytics' as const, label: 'Analítica'  },
   { href: '/strategy',  icon: 'strategy'  as const, label: 'Estrategia' },
-  { href: '/settings',  icon: 'settings'  as const, label: 'Settings'   },
+  { href: '/settings',  icon: 'settings'  as const, label: 'Ajustes'    },
 ];
 
 export default function Sidebar({ onSignOut, traderName = 'WilTrader', strategyText = '' }: SidebarProps) {
@@ -123,7 +123,7 @@ export default function Sidebar({ onSignOut, traderName = 'WilTrader', strategyT
           onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.borderColor = 'var(--red)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--txt3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
         >
-          <Icon name="logout" size={14} /> Sign Out
+          <Icon name="logout" size={14} /> Cerrar Sesión
         </button>
       </div>
     </aside>
