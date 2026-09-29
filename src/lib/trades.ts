@@ -1,6 +1,6 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, writeBatch,
-  query, where, orderBy, onSnapshot, getDocs,
+  query, where, onSnapshot, getDocs,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Trade, TradeFormData, TradeStatus } from '@/types';
@@ -15,15 +15,21 @@ export function subscribeToTrades(
   callback: (trades: Trade[]) => void,
   onError?: (error: Error) => void
 ) {
+  // No orderBy here on purpose: combining it with these equality filters would
+  // require a manual composite index in Firestore. Sorting client-side avoids that.
   const q = query(
     collection(db, TRADES_COLLECTION),
     where('userId', '==', userId),
-    where('accountId', '==', accountId),
-    orderBy('createdAt', 'desc')
+    where('accountId', '==', accountId)
   );
   return onSnapshot(
     q,
-    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Trade))),
+    (snap) => {
+      const trades = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Trade))
+        .sort((a, b) => b.createdAt - a.createdAt);
+      callback(trades);
+    },
     (error) => {
       console.error('subscribeToTrades failed', error);
       onError?.(error);

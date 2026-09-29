@@ -1,6 +1,6 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, onSnapshot,
+  query, where, onSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Account } from '@/types';
@@ -19,14 +19,20 @@ export function subscribeToAccounts(
   callback: (accounts: Account[]) => void,
   onError?: (error: Error) => void
 ) {
+  // No orderBy here on purpose: combining it with the equality filter above would
+  // require a manual composite index in Firestore. Sorting client-side avoids that.
   const q = query(
     collection(db, ACCOUNTS_COLLECTION),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'asc')
+    where('userId', '==', userId)
   );
   return onSnapshot(
     q,
-    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Account))),
+    (snap) => {
+      const accounts = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Account))
+        .sort((a, b) => a.createdAt - b.createdAt);
+      callback(accounts);
+    },
     (error) => {
       console.error('subscribeToAccounts failed', error);
       onError?.(error);
