@@ -110,7 +110,7 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
         </div>
 
         {/* Table */}
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', flexShrink: 0 }}>
           <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 13, fontWeight: 600 }}>{filtered.length} operaciones</span>
             <span style={{ fontSize: 12, color: 'var(--txt3)' }}>
