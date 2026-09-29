@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import JournalTable from '@/components/trade/JournalTable';
 import TradeForm from '@/components/trade/TradeForm';
+import ImportTradesModal from '@/components/trade/ImportTradesModal';
 import Icon from '@/components/ui/Icon';
 import type { Trade, TradeFormData } from '@/types';
 
@@ -23,6 +24,7 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
   const [filterStatus, setFStatus] = useState<'All' | 'Win' | 'Loss'>('All');
   const [showForm, setShowForm] = useState(false);
   const [editTrade, setEditTrade] = useState<Trade | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   const filtered = trades.filter((t) =>
     (t.asset.toLowerCase().includes(search.toLowerCase()) || t.strategy.toLowerCase().includes(search.toLowerCase()) || t.notes.toLowerCase().includes(search.toLowerCase())) &&
@@ -101,6 +103,10 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
             <Icon name="download" size={12} /> CSV
           </button>
 
+          <button onClick={() => setShowImport(true)} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--gold-border)', background: 'var(--gold-dim)', color: 'var(--gold)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Icon name="upload" size={12} /> Importar
+          </button>
+
         </div>
 
         {/* Table */}
@@ -140,6 +146,8 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
           />
         </div>
       )}
+
+      {showImport && <ImportTradesModal onClose={() => setShowImport(false)} />}
     </div>
   );
 }

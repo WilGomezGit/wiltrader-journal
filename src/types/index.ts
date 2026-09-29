@@ -1,9 +1,20 @@
 export type TradeType = 'Buy' | 'Sell';
 export type TradeStatus = 'Win' | 'Loss' | 'BE';
 
+export interface Account {
+  id: string;
+  userId: string;
+  name: string;
+  broker: string;
+  baseCurrency: 'USD' | 'COP' | 'EUR' | 'GBP';
+  initialBalance: number;
+  createdAt: number;
+}
+
 export interface Trade {
   id: string;
   userId: string;
+  accountId: string;
   date: string;
   time?: string;
   asset: string;

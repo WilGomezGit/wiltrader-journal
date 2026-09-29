@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/Icon';
 import { useApp } from '@/context/AppContext';
-import type { UserSettings, Trade } from '@/types';
+import ImportTradesModal from '@/components/trade/ImportTradesModal';
+import type { UserSettings, Trade, Account } from '@/types';
 
 interface TagListEditorProps {
   items: string[];
@@ -65,6 +66,160 @@ function TagListEditor({ items, onAdd, onRemove, placeholder, accentColor = 'var
   );
 }
 
+function AccountRow({ account, isActive, canDelete, onRename, onDelete, onActivate }: {
+  account: Account;
+  isActive: boolean;
+  canDelete: boolean;
+  onRename: (data: Partial<Omit<Account, 'id' | 'userId' | 'createdAt'>>) => Promise<void>;
+  onDelete: () => Promise<void>;
+  onActivate: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(account.name);
+  const [broker, setBroker] = useState(account.broker);
+  const [currency, setCurrency] = useState<Account['baseCurrency']>(account.baseCurrency);
+  const [balance, setBalance] = useState(String(account.initialBalance));
+  const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  const inp: React.CSSProperties = { padding: '7px 10px', background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, color: 'var(--txt)', fontSize: 12, outline: 'none', fontFamily: 'var(--mono)' };
+
+  const save = async () => {
+    setSaving(true);
+    await onRename({ name: name.trim() || account.name, broker, baseCurrency: currency, initialBalance: parseFloat(balance) || 0 });
+    setSaving(false);
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div style={{ padding: '14px', background: 'var(--bg3)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" style={inp} />
+        <input value={broker} onChange={(e) => setBroker(e.target.value)} placeholder="Broker" style={inp} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select value={currency} onChange={(e) => setCurrency(e.target.value as Account['baseCurrency'])} style={{ ...inp, flex: 1, cursor: 'pointer' }}>
+            {(['USD', 'COP', 'EUR', 'GBP'] as const).map((c) => <option key={c}>{c}</option>)}
+          </select>
+          <input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="Balance inicial" style={{ ...inp, flex: 1 }} />
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" onClick={() => setEditing(false)} style={{ flex: 1, padding: '7px', borderRadius: 6, border: '1px solid var(--border2)', background: 'transparent', color: 'var(--txt2)', fontSize: 12, cursor: 'pointer' }}>Cancelar</button>
+          <button type="button" onClick={save} disabled={saving} style={{ flex: 1, padding: '7px', borderRadius: 6, border: 'none', background: 'var(--gold)', color: '#0a0a08', fontWeight: 700, fontSize: 12, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>{saving ? '...' : 'Guardar'}</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+      padding: '12px 14px', background: 'var(--bg3)', borderRadius: 10,
+      border: isActive ? '1px solid var(--gold-border)' : '1px solid transparent',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: isActive ? 'var(--gold)' : 'var(--border2)', flexShrink: 0 }} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--txt)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{account.name}</div>
+          <div style={{ fontSize: 11, color: 'var(--txt3)', fontFamily: 'var(--mono)' }}>
+            {account.broker} · {account.baseCurrency} · Balance inicial ${account.initialBalance.toLocaleString()}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        {!isActive && (
+          <button type="button" onClick={onActivate} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--gold-border)', background: 'var(--gold-dim)', color: 'var(--gold)', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+            Activar
+          </button>
+        )}
+        <button type="button" onClick={() => setEditing(true)} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border2)', background: 'transparent', color: 'var(--txt2)', cursor: 'pointer', display: 'flex' }}>
+          <Icon name="edit" size={13} />
+        </button>
+        {canDelete && (
+          confirming ? (
+            <button type="button" onClick={onDelete} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.15)', color: 'var(--red)', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+              ¿Confirmar?
+            </button>
+          ) : (
+            <button type="button" onClick={() => setConfirming(true)} onBlur={() => setConfirming(false)} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border2)', background: 'transparent', color: 'var(--txt3)', cursor: 'pointer', display: 'flex' }}>
+              <Icon name="trash" size={13} />
+            </button>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AccountsManager() {
+  const { accounts, activeAccountId, switchAccount, addAccount, renameAccount, deleteAccount } = useApp();
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [broker, setBroker] = useState('MT5 — Live');
+  const [currency, setCurrency] = useState<Account['baseCurrency']>('USD');
+  const [balance, setBalance] = useState('20000');
+  const [creating, setCreating] = useState(false);
+
+  const inp: React.CSSProperties = { padding: '8px 10px', background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 6, color: 'var(--txt)', fontSize: 12, outline: 'none', fontFamily: 'var(--mono)' };
+
+  const create = async () => {
+    if (!name.trim()) return;
+    setCreating(true);
+    await addAccount({ name: name.trim(), broker, baseCurrency: currency, initialBalance: parseFloat(balance) || 0 });
+    setCreating(false); setAdding(false);
+    setName(''); setBroker('MT5 — Live'); setCurrency('USD'); setBalance('20000');
+  };
+
+  return (
+    <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: '22px', animationDelay: '20ms' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="trophy" size={16} color="var(--gold)" />
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Cuentas</span>
+        </div>
+        {!adding && (
+          <button type="button" onClick={() => setAdding(true)} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--gold-border)', background: 'var(--gold-dim)', color: 'var(--gold)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Icon name="plus" size={12} /> Nueva Cuenta
+          </button>
+        )}
+      </div>
+      <p style={{ fontSize: 12, color: 'var(--txt3)', marginBottom: 14 }}>Administra tus cuentas de trading. Cada cuenta tiene su propio balance, broker y trades independientes.</p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {accounts.map((a) => (
+          <AccountRow
+            key={a.id}
+            account={a}
+            isActive={a.id === activeAccountId}
+            canDelete={accounts.length > 1}
+            onActivate={() => switchAccount(a.id)}
+            onRename={(data) => renameAccount(a.id, data)}
+            onDelete={() => deleteAccount(a.id)}
+          />
+        ))}
+      </div>
+
+      {adding && (
+        <div style={{ marginTop: 12, padding: 14, background: 'var(--bg3)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre (p.ej. Cuenta Fondeada)" style={inp} />
+          <input value={broker} onChange={(e) => setBroker(e.target.value)} placeholder="Broker" style={inp} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value as Account['baseCurrency'])} style={{ ...inp, flex: 1, cursor: 'pointer' }}>
+              {(['USD', 'COP', 'EUR', 'GBP'] as const).map((c) => <option key={c}>{c}</option>)}
+            </select>
+            <input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="Balance inicial" style={{ ...inp, flex: 1 }} />
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={() => setAdding(false)} style={{ flex: 1, padding: '8px', borderRadius: 6, border: '1px solid var(--border2)', background: 'transparent', color: 'var(--txt2)', fontSize: 12, cursor: 'pointer' }}>Cancelar</button>
+            <button type="button" onClick={create} disabled={creating || !name.trim()} style={{ flex: 1, padding: '8px', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg,#b8880a,#d4a500,#e8c45a)', color: '#0a0a08', fontWeight: 700, fontSize: 12, cursor: 'pointer', opacity: creating || !name.trim() ? 0.6 : 1 }}>
+              {creating ? '...' : 'Crear Cuenta'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface SettingsViewProps {
   settings: UserSettings;
   onSave: (s: Partial<UserSettings>) => Promise<void>;
@@ -95,6 +250,7 @@ export default function SettingsView({ settings, onSave }: SettingsViewProps) {
   const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', background: 'var(--bg4)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--txt)', fontSize: 13, fontFamily: 'var(--mono)', outline: 'none' };
   const lbl: React.CSSProperties = { fontSize: 11, color: 'var(--txt2)', marginBottom: 4, display: 'block', letterSpacing: '0.04em', textTransform: 'uppercase' };
@@ -111,31 +267,51 @@ export default function SettingsView({ settings, onSave }: SettingsViewProps) {
 
   return (
     <div style={{ maxWidth: 680, display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', height: '100%', paddingBottom: 20 }}>
-      {/* Account */}
+      {/* Profile */}
       <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: '22px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
           <Icon name="trophy" size={16} color="var(--gold)" />
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Cuenta</span>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Perfil</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {[
-            ['Nombre del Trader', 'traderName', 'text'],
-            ['Balance Inicial (USD)', 'initialBalance', 'number'],
-            ['Cuenta Broker', 'broker', 'text'],
-          ].map(([label, key, type]) => (
-            <div key={String(key)}>
-              <label style={lbl}>{label}</label>
-              <input
-                type={type}
-                value={String(local[key as keyof UserSettings])}
-                onChange={(e) => setLocal((prev) => ({ ...prev, [key]: type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value }))}
-                style={inp}
-                onFocus={focus}
-                onBlur={blur}
-              />
-            </div>
-          ))}
+          <div>
+            <label style={lbl}>Nombre del Trader</label>
+            <input
+              type="text"
+              value={local.traderName}
+              onChange={(e) => setLocal((prev) => ({ ...prev, traderName: e.target.value }))}
+              style={inp}
+              onFocus={focus}
+              onBlur={blur}
+            />
+          </div>
         </div>
+      </div>
+
+      {/* Accounts */}
+      <AccountsManager />
+
+      {/* Import history */}
+      <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: '22px', animationDelay: '40ms' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <Icon name="upload" size={16} color="var(--gold)" />
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Importar Historial</span>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--txt3)', marginBottom: 14 }}>
+          Sube el reporte de historial (.xlsx) exportado desde MetaTrader (MT4/MT5) para importar automáticamente tus operaciones, comisiones y swaps a una cuenta nueva o existente.
+        </p>
+        <button
+          type="button"
+          onClick={() => setShowImportModal(true)}
+          style={{
+            padding: '9px 20px', borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--gold-border)', background: 'var(--gold-dim)',
+            color: 'var(--gold)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}
+        >
+          <Icon name="upload" size={14} /> Importar desde Excel
+        </button>
       </div>
 
       {/* Preferences */}
@@ -145,12 +321,6 @@ export default function SettingsView({ settings, onSave }: SettingsViewProps) {
           <span style={{ fontSize: 14, fontWeight: 600 }}>Preferencias</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <label style={lbl}>Moneda Base</label>
-            <select value={local.baseCurrency} onChange={(e) => setLocal((p) => ({ ...p, baseCurrency: e.target.value as any }))} style={{ ...inp, cursor: 'pointer' }} onFocus={focus} onBlur={blur}>
-              {['USD', 'COP', 'EUR', 'GBP'].map((c) => <option key={c}>{c}</option>)}
-            </select>
-          </div>
           <div>
             <label style={lbl}>Zona Horaria</label>
             <select value={local.timezone} onChange={(e) => setLocal((p) => ({ ...p, timezone: e.target.value }))} style={{ ...inp, cursor: 'pointer' }} onFocus={focus} onBlur={blur}>
@@ -232,7 +402,7 @@ export default function SettingsView({ settings, onSave }: SettingsViewProps) {
           <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--red)' }}>Zona de Peligro</span>
         </div>
         <p style={{ fontSize: 12, color: 'var(--txt3)', marginBottom: 16 }}>
-          Borra permanentemente todos los trades de la base de datos. Se descargará un CSV de respaldo antes de eliminar.
+          Borra permanentemente todos los trades de la cuenta activa. Se descargará un CSV de respaldo antes de eliminar.
         </p>
         <button
           type="button"
@@ -350,6 +520,8 @@ export default function SettingsView({ settings, onSave }: SettingsViewProps) {
           </div>
         </div>
       )}
+
+      {showImportModal && <ImportTradesModal onClose={() => setShowImportModal(false)} />}
     </div>
   );
 }
