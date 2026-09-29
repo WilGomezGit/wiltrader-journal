@@ -126,7 +126,7 @@ export default function WeeklyPerformanceCard({ trades }: WeeklyPerformanceCardP
   const fmtSigned = (v: number) => `${v >= 0 ? '+$' : '-$'}${Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+    <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', overflow: 'hidden', flexShrink: 0 }}>
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '12px 20px', background: netChange < 0 ? 'rgba(239,68,68,0.08)' : netChange > 0 ? 'rgba(34,197,94,0.08)' : 'var(--bg3)',
