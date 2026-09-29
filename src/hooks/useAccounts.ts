@@ -6,14 +6,23 @@ import type { Account } from '@/types';
 export function useAccounts(userId: string | null) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!userId) { setAccounts([]); setLoading(false); return; }
+    if (!userId) { setAccounts([]); setLoading(false); setError(null); return; }
     setLoading(true);
-    const unsub = subscribeToAccounts(userId, (data) => {
-      setAccounts(data);
-      setLoading(false);
-    });
+    setError(null);
+    const unsub = subscribeToAccounts(
+      userId,
+      (data) => {
+        setAccounts(data);
+        setLoading(false);
+      },
+      (err) => {
+        setError(err);
+        setLoading(false);
+      }
+    );
     return unsub;
   }, [userId]);
 
@@ -21,5 +30,5 @@ export function useAccounts(userId: string | null) {
   const update = (id: string, data: Partial<Omit<Account, 'id' | 'userId' | 'createdAt'>>) => updateAccount(id, data);
   const remove = (id: string) => deleteAccount(id);
 
-  return { accounts, loading, add, update, remove };
+  return { accounts, loading, error, add, update, remove };
 }

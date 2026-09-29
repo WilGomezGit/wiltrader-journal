@@ -14,15 +14,24 @@ export type NewAccountData = {
   initialBalance: number;
 };
 
-export function subscribeToAccounts(userId: string, callback: (accounts: Account[]) => void) {
+export function subscribeToAccounts(
+  userId: string,
+  callback: (accounts: Account[]) => void,
+  onError?: (error: Error) => void
+) {
   const q = query(
     collection(db, ACCOUNTS_COLLECTION),
     where('userId', '==', userId),
     orderBy('createdAt', 'asc')
   );
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Account)));
-  });
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Account))),
+    (error) => {
+      console.error('subscribeToAccounts failed', error);
+      onError?.(error);
+    }
+  );
 }
 
 export async function createAccount(userId: string, data: NewAccountData): Promise<string> {

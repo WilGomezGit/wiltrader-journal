@@ -9,17 +9,26 @@ import type { ImportedTrade } from './mtImport';
 const TRADES_COLLECTION = 'trades';
 const BATCH_LIMIT = 450;
 
-export function subscribeToTrades(userId: string, accountId: string, callback: (trades: Trade[]) => void) {
+export function subscribeToTrades(
+  userId: string,
+  accountId: string,
+  callback: (trades: Trade[]) => void,
+  onError?: (error: Error) => void
+) {
   const q = query(
     collection(db, TRADES_COLLECTION),
     where('userId', '==', userId),
     where('accountId', '==', accountId),
     orderBy('createdAt', 'desc')
   );
-  return onSnapshot(q, (snap) => {
-    const trades = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Trade));
-    callback(trades);
-  });
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Trade))),
+    (error) => {
+      console.error('subscribeToTrades failed', error);
+      onError?.(error);
+    }
+  );
 }
 
 export async function addTrade(userId: string, accountId: string, data: TradeFormData): Promise<string> {
