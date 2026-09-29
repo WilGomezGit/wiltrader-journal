@@ -1,6 +1,6 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, onSnapshot,
+  query, where, onSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Account } from '@/types';
@@ -14,15 +14,30 @@ export type NewAccountData = {
   initialBalance: number;
 };
 
-export function subscribeToAccounts(userId: string, callback: (accounts: Account[]) => void) {
+export function subscribeToAccounts(
+  userId: string,
+  callback: (accounts: Account[]) => void,
+  onError?: (error: Error) => void
+) {
+  // No orderBy here on purpose: combining it with the equality filter above would
+  // require a manual composite index in Firestore. Sorting client-side avoids that.
   const q = query(
     collection(db, ACCOUNTS_COLLECTION),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'asc')
+    where('userId', '==', userId)
   );
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Account)));
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const accounts = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Account))
+        .sort((a, b) => a.createdAt - b.createdAt);
+      callback(accounts);
+    },
+    (error) => {
+      console.error('subscribeToAccounts failed', error);
+      onError?.(error);
+    }
+  );
 }
 
 export async function createAccount(userId: string, data: NewAccountData): Promise<string> {

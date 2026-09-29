@@ -6,14 +6,24 @@ import type { Trade, TradeFormData } from '@/types';
 export function useTrades(userId: string | null, accountId: string | null) {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!userId || !accountId) { setTrades([]); setLoading(false); return; }
+    if (!userId || !accountId) { setTrades([]); setLoading(false); setError(null); return; }
     setLoading(true);
-    const unsub = subscribeToTrades(userId, accountId, (data) => {
-      setTrades(data);
-      setLoading(false);
-    });
+    setError(null);
+    const unsub = subscribeToTrades(
+      userId,
+      accountId,
+      (data) => {
+        setTrades(data);
+        setLoading(false);
+      },
+      (err) => {
+        setError(err);
+        setLoading(false);
+      }
+    );
     return unsub;
   }, [userId, accountId]);
 
@@ -22,5 +32,5 @@ export function useTrades(userId: string | null, accountId: string | null) {
   const remove = (id: string) => deleteTrade(id);
   const removeAll = () => (userId && accountId) ? deleteAllTrades(userId, accountId) : Promise.reject('No account selected');
 
-  return { trades, loading, add, update, remove, removeAll };
+  return { trades, loading, error, add, update, remove, removeAll };
 }

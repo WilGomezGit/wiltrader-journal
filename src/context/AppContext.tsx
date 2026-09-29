@@ -1,5 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useTrades } from '@/hooks/useTrades';
@@ -57,7 +58,7 @@ const activeAccountKey = (uid: string) => `wiltrader.activeAccount.${uid}`;
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { user, loading, signIn, signUp, signOut, signInWithGoogle } = useAuth();
-  const { accounts, loading: accountsLoading, add: addAccountFn, update: updateAccountFn, remove: removeAccountFn } = useAccounts(user?.uid ?? null);
+  const { accounts, loading: accountsLoading, error: accountsError, add: addAccountFn, update: updateAccountFn, remove: removeAccountFn } = useAccounts(user?.uid ?? null);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [showCOP, setShowCOP] = useState(true);
   const [trmData, setTrmData] = useState<TrmData>({ rate: 4200, source: 'fallback' });
@@ -120,7 +121,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const activeAccount = accounts.find((a) => a.id === activeAccountId) ?? null;
 
-  const { trades, loading: tradesLoading, add, update, remove, removeAll } = useTrades(user?.uid ?? null, activeAccountId);
+  const { trades, loading: tradesLoading, error: tradesError, add, update, remove, removeAll } = useTrades(user?.uid ?? null, activeAccountId);
+
+  useEffect(() => {
+    if (accountsError) {
+      const needsIndex = accountsError.message.includes('index');
+      toast.error(
+        needsIndex
+          ? 'Firestore necesita un índice para las cuentas. Revisa la consola del navegador: el error trae un enlace para crearlo en un clic.'
+          : 'No se pudieron cargar tus cuentas.',
+        { id: 'accounts-error', duration: 8000 }
+      );
+    }
+  }, [accountsError]);
+
+  useEffect(() => {
+    if (tradesError) {
+      const needsIndex = tradesError.message.includes('index');
+      toast.error(
+        needsIndex
+          ? 'Firestore necesita un índice para los trades. Revisa la consola del navegador: el error trae un enlace para crearlo en un clic.'
+          : 'No se pudieron cargar tus trades.',
+        { id: 'trades-error', duration: 8000 }
+      );
+    }
+  }, [tradesError]);
 
   const stats = trades.length > 0
     ? computeStats(trades, activeAccount?.initialBalance ?? settings.initialBalance)
