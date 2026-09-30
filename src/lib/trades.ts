@@ -1,6 +1,6 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, writeBatch,
-  query, where, onSnapshot, getDocs,
+  query, where, onSnapshot, getDocs, type DocumentReference,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Trade, TradeFormData } from '@/types';
@@ -79,7 +79,7 @@ export async function deleteAllTrades(userId: string, accountId: string): Promis
 
 const ticketFromNotes = (notes: unknown) => String(notes ?? '').match(/Posición #(\d+)/)?.[1];
 
-export interface ImportResult { imported: number; skipped: number }
+export interface ImportResult { imported: number; skipped: number; /** Already-imported trades whose time was converted to Colombian time. */ converted: number }
 
 /**
  * Bulk-imports broker-statement trades. A trade is skipped when the same broker ticket already exists
@@ -93,11 +93,25 @@ export async function bulkImportTrades(
 ): Promise<ImportResult> {
   const existing = await getDocs(query(collection(db, TRADES_COLLECTION), where('userId', '==', userId), where('accountId', '==', accountId)));
   const seen = new Set<string>();
+  const unconverted = new Map<string, DocumentReference>(); // imported before times were converted to Colombian time
   existing.docs.forEach((d) => {
     const data = d.data();
     const id = data.externalId || ticketFromNotes(data.notes);
     if (id) seen.add(String(id));
+    if (id && !data.serverTime) unconverted.set(String(id), d.ref);
   });
+
+  // Re-importing the same report repairs the times of trades imported earlier in server time.
+  const repairs = trades.filter((t) => unconverted.has(t.ticket));
+  for (let i = 0; i < repairs.length; i += BATCH_LIMIT) {
+    const batch = writeBatch(db);
+    for (const t of repairs.slice(i, i + BATCH_LIMIT)) {
+      batch.update(unconverted.get(t.ticket) as DocumentReference, {
+        externalId: t.ticket, date: t.date, time: t.time, serverDate: t.serverDate, serverTime: t.serverTime, updatedAt: Date.now(),
+      });
+    }
+    await batch.commit();
+  }
 
   const fresh = trades.filter((t) => {
     if (!t.ticket || seen.has(t.ticket)) return false;
@@ -114,6 +128,8 @@ export async function bulkImportTrades(
         externalId: t.ticket,
         date: t.date,
         time: t.time,
+        serverDate: t.serverDate,
+        serverTime: t.serverTime,
         asset: t.asset,
         type: t.type,
         strategy: opts.strategy,
@@ -135,7 +151,7 @@ export async function bulkImportTrades(
     }
     await batch.commit();
   }
-  return { imported: fresh.length, skipped: trades.length - fresh.length };
+  return { imported: fresh.length, skipped: trades.length - fresh.length, converted: repairs.length };
 }
 
 /** One-time migration: assigns any legacy trades (created before multi-account support) to the given account. */

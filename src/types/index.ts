@@ -50,6 +50,9 @@ export interface Trade {
   accountId: string;
   date: string;
   time?: string;
+  /** Original broker-server date/time of imported trades (date/time above are Colombian time). */
+  serverDate?: string;
+  serverTime?: string;
   asset: string;
   type: TradeType;
   strategy: string;
