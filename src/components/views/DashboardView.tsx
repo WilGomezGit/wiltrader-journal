@@ -58,11 +58,11 @@ export default function DashboardView({ trades, stats, balance, initialBalance, 
           <MetricCard label="Balance" value={money(balance)} highlight delay={0} spark={spark} sparkColor="var(--gold)"
             sub={showCOP ? `COP ${Math.round(balance * copRate).toLocaleString('es-CO')}` : undefined}
             sub2={has ? undefined : 'Capital inicial · aún sin operaciones'} />
-          <MetricCard label="P&L neto" value={signedMoney(stats.pnl)} delay={60} spark={plSpark} sparkColor={tone(stats.pnl)}
+          <MetricCard label="P&L neto" value={signedMoney(stats.pnl)} valueColor={tone(stats.pnl)} delay={60} spark={plSpark} sparkColor={tone(stats.pnl)}
             sub2={`Bruto ${signedMoney(stats.pnlGross)} · costos ${money(stats.commissions + stats.swaps + stats.otherCosts)}`} />
           <MetricCard label="Tasa de victorias" value={has ? pct(stats.winRate) : '—'} delay={120}
             sub2={`${stats.wins} G · ${stats.losses} P · ${stats.breakeven} B/E`} />
-          <MetricCard label="Drawdown actual" value={has ? pct(stats.currentDrawdown.pct, 2) : '—'} delay={180} spark={ddSpark} sparkColor="var(--red)"
+          <MetricCard label="Drawdown actual" value={has ? pct(stats.currentDrawdown.pct, 2) : '—'} valueColor={has && stats.currentDrawdown.pct > 0 ? 'var(--red)' : undefined} delay={180} spark={ddSpark} sparkColor="var(--red)"
             sub2={`Máximo: ${pct(stats.maxDrawdown.pct, 2)} (${money(stats.maxDrawdown.amount)})`} />
         </div>
 
@@ -101,10 +101,10 @@ export default function DashboardView({ trades, stats, balance, initialBalance, 
           </>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)' }}>
-            <h2 style={{ fontWeight: 600, fontSize: 15 }}>Resumen rápido</h2>
+            <h2 style={{ fontWeight: 600, fontSize: 15, color: 'var(--gold2)' }}>Resumen rápido</h2>
             <div>
               {[
-                { label: 'Operaciones', val: String(stats.totalTrades), c: 'var(--txt)' },
+                { label: 'Operaciones', val: String(stats.totalTrades), c: 'var(--gold2)' },
                 { label: 'Mejor trade', val: has ? signedMoney(stats.bestTrade) : '—', c: 'var(--green)' },
                 { label: 'Peor trade', val: has ? signedMoney(stats.worstTrade) : '—', c: 'var(--red)' },
                 { label: 'Ganancia promedio', val: stats.wins ? signedMoney(stats.avgWin) : '—', c: 'var(--green)' },

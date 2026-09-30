@@ -11,7 +11,7 @@ function LimitBar({ label, remaining, usedPct, detail }: { label: string; remain
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
         <span style={{ color: 'var(--txt2)' }}>{label}</span>
-        <span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{money(remaining)} <span style={{ color: 'var(--txt3)', fontWeight: 400 }}>disponibles</span></span>
+        <span style={{ fontFamily: 'var(--mono)', fontWeight: 600, color: 'var(--gold2)' }}>{money(remaining)} <span style={{ color: 'var(--txt3)', fontWeight: 400 }}>disponibles</span></span>
       </div>
       <ProgressBar value={usedPct} color={color} height={6} />
       <span style={{ fontSize: 11, color: 'var(--txt3)' }}>{detail}</span>
@@ -30,7 +30,7 @@ export default function PropProgress({ account, status }: { account: Account; st
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 'var(--sp-2)' }}>
             <span style={{ fontSize: 11, color: 'var(--txt3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Progreso</span>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700 }}>
-              {money(status.profit)} / {money(status.target)} <span style={{ color: 'var(--gold2)' }}>· {Math.max(status.progressPct, 0).toFixed(0)}%</span>
+              <span style={{ color: status.profit > 0 ? 'var(--green)' : status.profit < 0 ? 'var(--red)' : 'var(--txt3)' }}>{money(status.profit)}</span> <span style={{ color: 'var(--gold2)' }}>/ {money(status.target)}</span> <span style={{ color: 'var(--gold2)' }}>· {Math.max(status.progressPct, 0).toFixed(0)}%</span>
             </span>
           </div>
           <ProgressBar value={status.progressPct} color={status.targetReached ? 'var(--green)' : 'var(--gold)'} height={10} />

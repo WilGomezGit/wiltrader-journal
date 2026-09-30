@@ -28,7 +28,7 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
     padding: '12px 12px', textAlign: 'left', fontSize: 11, color: 'var(--txt3)', fontWeight: 500,
     letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
   };
-  const td: React.CSSProperties = { padding: '14px 12px', fontSize: 13, fontFamily: 'var(--mono)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' };
+  const td: React.CSSProperties = { padding: '14px 12px', fontSize: 13, fontFamily: 'var(--mono)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', color: 'var(--gold2)' };
 
   if (rows.length === 0) {
     return <div style={{ padding: 'var(--sp-6)', textAlign: 'center', color: 'var(--txt3)', fontSize: 13 }}>Aún no hay trades. Agrega tu primer trade para comenzar.</div>;
@@ -63,7 +63,7 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
                 <td style={td}>
                   <span style={{ padding: '3px 9px', borderRadius: 4, fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)' }}>{t.strategy || '—'}</span>
                 </td>
-                <td style={{ ...td, color: 'var(--txt2)' }}>{signedMoney(t.result)}</td>
+                <td style={{ ...td, color: tone(t.result) }}>{signedMoney(t.result)}</td>
                 <td style={{ ...td, color: costs > 0 ? 'var(--red)' : 'var(--txt3)', fontSize: 12 }}>{costs > 0 ? `-${money(costs)}` : '—'}</td>
                 <td style={{ ...td, color: tone(net), fontWeight: 600 }}>{signedMoney(net)}</td>
                 {showCOP && <td style={{ ...td, color: tone(cop), fontSize: 12 }}>{cop >= 0 ? '+' : '-'} COP {Math.abs(cop).toLocaleString('es-CO')}</td>}

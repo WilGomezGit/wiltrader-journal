@@ -61,7 +61,7 @@ function AccountCard({ s, cashflows, isView, onView, onEdit, onToggle, onDelete,
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--sp-4)', flexWrap: 'wrap', marginBottom: 'var(--sp-5)' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700 }}>{a.name}</h2>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--gold2)' }}>{a.name}</h2>
             <Badge color={a.kind === 'prop' ? 'var(--gold2)' : 'var(--txt2)'} bg={a.kind === 'prop' ? 'var(--gold-dim)' : 'var(--bg4)'}>{a.kind === 'prop' ? 'Fondeo' : 'Personal'}</Badge>
             {a.prop && <Badge>{phaseLabel(a.prop.phase)}</Badge>}
             {!a.active && <Badge color="var(--txt3)">Inactiva</Badge>}
@@ -132,7 +132,7 @@ export default function AccountsView({ summaries, consolidated, cashflows, viewA
 
   const active = summaries.filter((s) => s.account.active);
   const th: React.CSSProperties = { padding: '10px 14px', textAlign: 'right', fontSize: 11, color: 'var(--txt3)', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' };
-  const td: React.CSSProperties = { padding: '12px 14px', textAlign: 'right', fontSize: 13, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' };
+  const td: React.CSSProperties = { padding: '12px 14px', textAlign: 'right', fontSize: 13, fontFamily: 'var(--mono)', whiteSpace: 'nowrap', color: 'var(--gold2)' };
   const cs = consolidated.stats;
 
   return (
@@ -161,7 +161,7 @@ export default function AccountsView({ summaries, consolidated, cashflows, viewA
                     <td style={{ ...td, color: tone(s.stats.pnl) }}>{signedMoney(s.stats.pnl)}</td>
                     <td style={td}>{s.stats.totalTrades ? pct(s.stats.winRate) : '—'}</td>
                     <td style={td}>{profitFactor(s.stats.profitFactor, s.stats.totalTrades > 0)}</td>
-                    <td style={td}>{s.stats.totalTrades ? pct(s.stats.maxDrawdown.pct, 2) : '—'}</td>
+                    <td style={{ ...td, color: s.stats.maxDrawdown.amount > 0 ? 'var(--red)' : undefined }}>{s.stats.totalTrades ? pct(s.stats.maxDrawdown.pct, 2) : '—'}</td>
                     <td style={{ ...td, paddingRight: 'var(--sp-5)' }}>{s.stats.totalTrades}</td>
                   </tr>
                 ))}
@@ -171,7 +171,7 @@ export default function AccountsView({ summaries, consolidated, cashflows, viewA
                   <td style={{ ...td, fontWeight: 700, color: tone(cs.pnl) }}>{signedMoney(cs.pnl)}</td>
                   <td style={{ ...td, fontWeight: 700 }}>{cs.totalTrades ? pct(cs.winRate) : '—'}</td>
                   <td style={{ ...td, fontWeight: 700 }}>{profitFactor(cs.profitFactor, cs.totalTrades > 0)}</td>
-                  <td style={{ ...td, fontWeight: 700 }}>{cs.totalTrades ? pct(cs.maxDrawdown.pct, 2) : '—'}</td>
+                  <td style={{ ...td, fontWeight: 700, color: cs.maxDrawdown.amount > 0 ? 'var(--red)' : undefined }}>{cs.totalTrades ? pct(cs.maxDrawdown.pct, 2) : '—'}</td>
                   <td style={{ ...td, fontWeight: 700, paddingRight: 'var(--sp-5)' }}>{cs.totalTrades}</td>
                 </tr>
               </tbody>

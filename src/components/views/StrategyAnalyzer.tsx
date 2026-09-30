@@ -199,7 +199,7 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
   };
   const td: React.CSSProperties = {
     padding: '11px 16px', textAlign: 'right', fontSize: 12,
-    fontFamily: 'var(--mono)', whiteSpace: 'nowrap', color: 'var(--txt)',
+    fontFamily: 'var(--mono)', whiteSpace: 'nowrap', color: 'var(--gold2)',
   };
 
   return (
@@ -241,7 +241,7 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
                 <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg3)' }}>
                   <td style={{ ...td, textAlign: 'left', fontWeight: 600, position: 'sticky', left: 0, background: i % 2 === 0 ? 'var(--bg2)' : 'var(--bg3)' }}>{r.label}</td>
                   {columns.map((c) => (
-                    <td key={c.key} style={{ ...td, color: c.color ? c.color(r) : 'var(--txt)' }}>{c.render(r)}</td>
+                    <td key={c.key} style={{ ...td, color: c.color ? c.color(r) : 'var(--gold2)' }}>{c.render(r)}</td>
                   ))}
                 </tr>
               ))}
