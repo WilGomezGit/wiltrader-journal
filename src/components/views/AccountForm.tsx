@@ -4,6 +4,7 @@ import { Button, Field, Modal, inputStyle } from '@/components/ui/kit';
 import type { Account, AccountKind, Currency, PropPhase } from '@/types';
 import type { NewAccountData } from '@/lib/accounts';
 import { money } from '@/lib/format';
+import { PROP_PRESETS, presetAmounts, presetById } from '@/lib/propPresets';
 
 const PHASES: PropPhase[] = ['Challenge', 'Phase 2', 'Funded', 'Payout', 'Otra'];
 const PHASE_LABEL: Record<PropPhase, string> = { Challenge: 'Challenge / Fase 1', 'Phase 2': 'Fase 2', Funded: 'Fondeada', Payout: 'Payout', Otra: 'Otra' };
@@ -137,6 +138,17 @@ export default function AccountForm({ account, onSave, onClose }: AccountFormPro
         {kind === 'prop' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)', padding: 'var(--sp-4)', background: 'var(--bg3)', borderRadius: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold2)' }}>Reglas de fondeo ({currency})</div>
+            <Field label="Plantilla de reglas" hint={initial > 0 ? 'Rellena objetivo y límites según el balance inicial. Puedes ajustar los valores.' : 'Escribe primero el balance inicial.'}>
+              <select style={{ ...inputStyle, cursor: 'pointer' }} defaultValue="" disabled={!(initial > 0)} onChange={(e) => {
+                const pr = presetById(e.target.value);
+                if (!pr) return;
+                const a = presetAmounts(pr, initial);
+                setPhase(pr.phase); setTarget(a.target); setMaxLoss(a.maxLoss); setMaxDaily(a.maxDaily);
+              }}>
+                <option value="">Manual</option>
+                {PROP_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+              </select>
+            </Field>
             <div style={grid}>
               <Field label="Objetivo de beneficio" hint={pctOf(target)}><input style={inputStyle} type="number" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="500" /></Field>
               <Field label="Fecha límite (opcional)"><input style={inputStyle} type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></Field>
