@@ -56,7 +56,8 @@ export default function DashboardView({ trades, stats, balance, initialBalance, 
 
         <div style={{ display: 'flex', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
           <MetricCard label="Balance" value={money(balance)} highlight delay={0} spark={spark} sparkColor="var(--gold)"
-            sub={showCOP ? `COP ${Math.round(balance * copRate).toLocaleString('es-CO')}` : undefined} />
+            sub={showCOP ? `COP ${Math.round(balance * copRate).toLocaleString('es-CO')}` : undefined}
+            sub2={has ? undefined : 'Capital inicial · aún sin operaciones'} />
           <MetricCard label="P&L neto" value={signedMoney(stats.pnl)} delay={60} spark={plSpark} sparkColor={tone(stats.pnl)}
             sub2={`Bruto ${signedMoney(stats.pnlGross)} · costos ${money(stats.commissions + stats.swaps + stats.otherCosts)}`} />
           <MetricCard label="Tasa de victorias" value={has ? pct(stats.winRate) : '—'} delay={120}
@@ -79,7 +80,9 @@ export default function DashboardView({ trades, stats, balance, initialBalance, 
         </Card>
 
         <Card title="Curva de equity" subtitle="Balance de trading: capital inicial + P&L neto acumulado" style={{ flexShrink: 0 }}>
-          <EquityChart data={equityData} />
+          {has ? <EquityChart data={equityData} /> : (
+            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--txt3)', fontSize: 13 }}>Registra tu primera operación para ver la curva</div>
+          )}
         </Card>
       </div>
 

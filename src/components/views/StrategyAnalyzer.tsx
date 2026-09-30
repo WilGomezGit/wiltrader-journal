@@ -1,5 +1,6 @@
 'use client';
-import { useMemo, useState, useId } from 'react';
+import { useMemo, useState } from 'react';
+import CumulativeChart from '@/components/charts/CumulativeChart';
 import { format, startOfDay, startOfWeek, startOfMonth, startOfYear } from 'date-fns';
 import { netPnl, outcomeOf, totalCosts } from '@/lib/analytics';
 import type { Trade } from '@/types';
@@ -69,95 +70,6 @@ function FilterField({ label, value, options, onChange }: { label: string; value
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
     </div>
-  );
-}
-
-function AnalyzerChart({ rows, metric }: { rows: Row[]; metric: GraphMetric }) {
-  const uid = useId().replace(/:/g, '');
-  const W = 900, H = 220;
-  const pad = { t: 16, r: 16, b: 34, l: 60 };
-
-  const values = rows.map((r) => metric === 'netProfit' ? r.cumNetProfit : metric === 'drawdown' ? -r.cumDrawdown : r.count);
-  const safe = values.length > 0 ? values : [0];
-  const minRaw = Math.min(0, ...safe);
-  const maxRaw = Math.max(0, ...safe);
-  const range = Math.max(maxRaw - minRaw, 1);
-  const pad10 = range * 0.1;
-  const min = minRaw - pad10;
-  const max = maxRaw + pad10;
-  const span = max - min || 1;
-
-  const denom = Math.max(1, safe.length - 1);
-  const pts = safe.map((v, i) => ({
-    x: pad.l + (i * (W - pad.l - pad.r)) / denom,
-    y: pad.t + (1 - (v - min) / span) * (H - pad.t - pad.b),
-  }));
-
-  const zeroY = pad.t + (1 - (0 - min) / span) * (H - pad.t - pad.b);
-
-  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
-  const areaPath = pts.length > 1
-    ? `${linePath} L${pts[pts.length - 1].x},${zeroY} L${pts[0].x},${zeroY} Z`
-    : '';
-
-  const yTicks = 5;
-  const yLabels = Array.from({ length: yTicks + 1 }, (_, i) => min + (span * i) / yTicks);
-
-  const fmtY = (v: number) => {
-    if (metric === 'trades') return v.toFixed(0);
-    if (metric === 'drawdown') return `${(-v).toFixed(1)}%`;
-    return Math.abs(v) >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(0)}`;
-  };
-
-  const labelStep = Math.max(1, Math.ceil(rows.length / 10));
-
-  return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }}>
-      <defs>
-        <linearGradient id={`analyzerFillGold-${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#c9a227" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#c9a227" stopOpacity="0.04" />
-        </linearGradient>
-        <linearGradient id={`analyzerFillRed-${uid}`} x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#ef4444" stopOpacity="0.04" />
-        </linearGradient>
-        {/* Splits the area/line into a profit half (above the zero line) and a loss half (below it). */}
-        <clipPath id={`clipAbove-${uid}`}><rect x="0" y="0" width={W} height={Math.max(zeroY, 0)} /></clipPath>
-        <clipPath id={`clipBelow-${uid}`}><rect x="0" y={zeroY} width={W} height={Math.max(H - zeroY, 0)} /></clipPath>
-      </defs>
-
-      {yLabels.map((v, i) => {
-        const y = pad.t + (1 - (v - min) / span) * (H - pad.t - pad.b);
-        return (
-          <g key={i}>
-            <line x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke="#252528" strokeWidth="1" strokeDasharray="4,6" />
-            <text x={pad.l - 8} y={y + 3} fill="#5a5450" fontSize="9" textAnchor="end" fontFamily="JetBrains Mono">{fmtY(v)}</text>
-          </g>
-        );
-      })}
-
-      {areaPath && (
-        <>
-          <path d={areaPath} fill={`url(#analyzerFillGold-${uid})`} clipPath={`url(#clipAbove-${uid})`} />
-          <path d={areaPath} fill={`url(#analyzerFillRed-${uid})`} clipPath={`url(#clipBelow-${uid})`} />
-        </>
-      )}
-      {pts.length > 1 && (
-        <>
-          <path d={linePath} fill="none" stroke="#c9a227" strokeWidth="1.8" clipPath={`url(#clipAbove-${uid})`} />
-          <path d={linePath} fill="none" stroke="#ef4444" strokeWidth="1.8" clipPath={`url(#clipBelow-${uid})`} />
-        </>
-      )}
-
-      {rows.map((r, i) => (
-        i % labelStep === 0 ? (
-          <text key={i} x={pts[i].x} y={H - pad.b + 16} fill="#5a5450" fontSize="8.5" textAnchor="middle" fontFamily="JetBrains Mono">
-            {r.label}
-          </text>
-        ) : null
-      ))}
-    </svg>
   );
 }
 
@@ -366,7 +278,10 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
             <option value="trades">Trades por Período</option>
           </select>
         </div>
-        <AnalyzerChart rows={rows} metric={graphMetric} />
+        <CumulativeChart
+          points={rows.map((r) => ({ label: r.label, value: graphMetric === 'netProfit' ? r.cumNetProfit : graphMetric === 'drawdown' ? -r.cumDrawdown : r.count }))}
+          format={(v) => graphMetric === 'trades' ? String(Math.round(v)) : graphMetric === 'drawdown' ? `${(-v).toFixed(2)}%` : `${v < 0 ? '-' : ''}$${Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+          height={240} emptyText="Sin trades para los filtros seleccionados." />
       </div>
     </div>
   );
