@@ -6,7 +6,8 @@ import { Button, Field, Modal, inputStyle } from '@/components/ui/kit';
 import { useApp } from '@/context/AppContext';
 import { parseMtReport, type MtImportResult } from '@/lib/mtImport';
 import { signedMoney, tone } from '@/lib/format';
-import type { AccountKind } from '@/types';
+import type { AccountKind, PropPhase } from '@/types';
+import { PROP_PRESETS, presetAmounts, presetById } from '@/lib/propPresets';
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // broker statements are small; reject anything unexpected up front.
 
@@ -23,12 +24,25 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
   const [parsed, setParsed] = useState<MtImportResult | null>(null);
   const [destination, setDestination] = useState('__new__');
   const [newKind, setNewKind] = useState<AccountKind | null>(null);
+  const [preset, setPreset] = useState('');
   const [guessed, setGuessed] = useState(false);
   const [target, setTarget] = useState('');
   const [maxLoss, setMaxLoss] = useState('');
   const [maxDaily, setMaxDaily] = useState('');
   const [strategy, setStrategy] = useState('Importado MT5');
   const [result, setResult] = useState({ imported: 0, skipped: 0 });
+
+  const estimateInitial = (r: MtImportResult) => {
+    const net = r.trades.reduce((a, t) => a + t.result - t.commission - t.swap, 0);
+    return r.accountInfo.endingBalance !== null ? Math.round((r.accountInfo.endingBalance - net) * 100) / 100 : 0;
+  };
+  const applyPreset = (id: string, initial: number) => {
+    setPreset(id);
+    const p = presetById(id);
+    if (!p) return;
+    const a = presetAmounts(p, initial);
+    setTarget(a.target); setMaxLoss(a.maxLoss); setMaxDaily(a.maxDaily);
+  };
 
   const handleFile = async (file: File) => {
     setError('');
@@ -39,6 +53,7 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
       setDestination(scopeAccount?.id ?? accounts[0]?.id ?? '__new__');
       setNewKind(PROP_FIRMS.test(r.accountInfo.broker) ? 'prop' : null);
       setGuessed(PROP_FIRMS.test(r.accountInfo.broker));
+      if (/funding ?pips/i.test(r.accountInfo.broker)) applyPreset('fp-flex-1', estimateInitial(r)); else applyPreset('', 0);
       setStep('preview');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo leer el archivo.');
@@ -88,7 +103,7 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
           accountNumber: parsed.accountInfo.accountNumber || undefined,
           baseCurrency: parsed.accountInfo.currency,
           initialBalance: estimated > 0 ? estimated : 10000,
-          prop: newKind === 'prop' ? { phase: 'Challenge', profitTarget: parseFloat(target) || 0, maxTotalLoss: parseFloat(maxLoss) || 0, maxDailyLoss: parseFloat(maxDaily) || 0 } : undefined,
+          prop: newKind === 'prop' ? { phase: (presetById(preset)?.phase ?? 'Challenge') as PropPhase, profitTarget: parseFloat(target) || 0, maxTotalLoss: parseFloat(maxLoss) || 0, maxDailyLoss: parseFloat(maxDaily) || 0 } : undefined,
         });
       }
       if (!settings.strategies.includes(strategy)) await updateSettings({ strategies: [...settings.strategies, strategy] });
@@ -163,11 +178,19 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
             </Field>
           )}
           {destination === '__new__' && newKind === 'prop' && (
+            <>
+            <Field label="Plantilla de reglas" hint="Rellena objetivo y límites según el programa. Puedes ajustar los valores.">
+              <select value={preset} onChange={(e) => applyPreset(e.target.value, parsed ? estimateInitial(parsed) : 0)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="">Manual</option>
+                {PROP_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+              </select>
+            </Field>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--sp-3)' }}>
               <Field label="Objetivo de beneficio"><input style={inputStyle} type="number" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="500" /></Field>
               <Field label="Pérdida máx. total"><input style={inputStyle} type="number" value={maxLoss} onChange={(e) => setMaxLoss(e.target.value)} placeholder="500" /></Field>
               <Field label="Pérdida máx. diaria"><input style={inputStyle} type="number" value={maxDaily} onChange={(e) => setMaxDaily(e.target.value)} placeholder="250" /></Field>
             </div>
+            </>
           )}
           <Field label="Etiqueta de estrategia para estos trades">
             <input value={strategy} onChange={(e) => setStrategy(e.target.value)} style={inputStyle} />
