@@ -1,9 +1,14 @@
 import * as XLSX from 'xlsx';
 import type { Account } from '@/types';
+import { fromISODate, serverToColombia } from '@/lib/dates';
 
 export interface ImportedTrade {
+  /** Close date/time in Colombian time (converted from the broker-server time of the report). */
   date: string;
   time: string;
+  /** Original broker-server close date/time, kept untouched. */
+  serverDate: string;
+  serverTime: string;
   asset: string;
   type: 'Buy' | 'Sell';
   entry: number;
@@ -138,9 +143,15 @@ export async function parseMtReport(file: File): Promise<MtImportResult> {
     const swapRaw = num(row[11]);
     const profitRaw = num(row[12]);
 
+    const serverIso = `${closeTime.getFullYear()}-${two(closeTime.getMonth() + 1)}-${two(closeTime.getDate())}`;
+    const serverTime = `${two(closeTime.getHours())}:${two(closeTime.getMinutes())}`;
+    const local = serverToColombia(serverIso, serverTime);
+
     trades.push({
-      date: `${two(closeTime.getMonth() + 1)}/${two(closeTime.getDate())}/${closeTime.getFullYear()}`,
-      time: `${two(closeTime.getHours())}:${two(closeTime.getMinutes())}`,
+      date: fromISODate(local.date),
+      time: local.time,
+      serverDate: fromISODate(serverIso),
+      serverTime,
       asset: String(row[2] ?? '').trim(),
       type,
       entry: num(row[5]),

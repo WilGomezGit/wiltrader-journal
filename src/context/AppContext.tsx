@@ -217,7 +217,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteTrade: (id) => deleteTradeDoc(id),
     deleteAllTrades: async (accountId) => { if (user) await deleteAllTradesDocs(user.uid, accountId); },
     importTrades: async (accountId, imported, strategy) =>
-      user ? bulkImportTrades(user.uid, accountId, imported, { strategy, copRate: trmData.rate }) : { imported: 0, skipped: 0 },
+      user ? bulkImportTrades(user.uid, accountId, imported, { strategy, copRate: trmData.rate }) : { imported: 0, skipped: 0, converted: 0 },
     addAccount, updateAccount, deleteAccount,
     addCashflow: async (data) => { if (user) await addCashflowDoc(user.uid, data); },
     removeCashflow: (id) => deleteCashflow(id),

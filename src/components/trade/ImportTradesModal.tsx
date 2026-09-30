@@ -30,7 +30,7 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
   const [maxLoss, setMaxLoss] = useState('');
   const [maxDaily, setMaxDaily] = useState('');
   const [strategy, setStrategy] = useState('Importado MT5');
-  const [result, setResult] = useState({ imported: 0, skipped: 0 });
+  const [result, setResult] = useState({ imported: 0, skipped: 0, converted: 0 });
 
   const estimateInitial = (r: MtImportResult) => {
     const net = r.trades.reduce((a, t) => a + t.result - t.commission - t.swap, 0);
@@ -118,7 +118,7 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
         if (acc?.kind === 'prop' && acc.prop) setVerdict(evaluate(parsed.trades, acc.initialBalance, acc.prop.profitTarget, acc.prop.maxTotalLoss, acc.prop.maxDailyLoss));
       }
       setStep('done');
-      toast.success(r.imported > 0 ? `${r.imported} trades importados` : 'No había trades nuevos que importar');
+      toast.success(r.imported > 0 || r.converted > 0 ? `${r.imported} trades importados` : 'No había trades nuevos que importar');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ocurrió un error al importar.');
       setStep('preview');
@@ -134,7 +134,7 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
       {step === 'upload' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)' }}>
           <p style={{ fontSize: 13, color: 'var(--txt2)', lineHeight: 1.6 }}>
-            Sube el reporte de historial de MetaTrader (MT4/MT5) en <strong>.xlsx</strong>. Se leen las posiciones cerradas con su comisión y swap por separado.
+            Sube el reporte de historial de MetaTrader (MT4/MT5) en <strong>.xlsx</strong>. Se leen las posiciones cerradas con su comisión y swap por separado. Las horas del reporte (hora del servidor del broker) se convierten a hora de Colombia.
             Si importas el mismo archivo otra vez, las operaciones ya existentes se omiten.
           </p>
           <div role="button" tabIndex={0} onClick={() => fileRef.current?.click()} onKeyDown={(e) => e.key === 'Enter' && fileRef.current?.click()}
@@ -216,6 +216,7 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
             <Icon name="check" size={22} color="var(--green)" />
           </div>
           <span style={{ fontSize: 14, fontWeight: 600 }}>{result.imported} trades importados</span>
+          {result.converted > 0 && <span style={{ fontSize: 12, color: 'var(--txt2)' }}>{result.converted} trades ya importados se actualizaron a hora de Colombia.</span>}
           {verdict && (
             <div role="status" style={{
               width: '100%', padding: '12px 16px', borderRadius: 10, fontSize: 13, lineHeight: 1.5, textAlign: 'center',

@@ -67,6 +67,19 @@ const metrics: { key: keyof WeekStats; def: MetricDef }[] = [
   { key: 'avgLoss',      def: { icon: 'trend_dn', label: 'Pérdida Promedio',   format: usd, better: 'lowerMagnitude' } },
 ];
 
+/** Money figures read by sign: gains green, losses red, zero neutral. Counts and ratios keep the gold accent. */
+const SIGNED: Partial<Record<keyof WeekStats, 'sign' | 'gain' | 'loss'>> = {
+  netProfit: 'sign', bestDay: 'sign', worstDay: 'sign', avgWin: 'gain', avgLoss: 'loss', maxDrawdown: 'loss',
+};
+function valueColor(key: keyof WeekStats, v: number | null, fallback: string): string {
+  const kind = SIGNED[key];
+  if (v === null || !kind) return fallback;
+  if (v === 0) return 'var(--txt3)';
+  if (kind === 'gain') return 'var(--green)';
+  if (kind === 'loss') return 'var(--red)';
+  return v > 0 ? 'var(--green)' : 'var(--red)';
+}
+
 const badgeBase: React.CSSProperties = { padding: '4px 10px', borderRadius: 6, fontSize: 12, fontFamily: 'var(--mono)', textAlign: 'center', minWidth: 72 };
 const dash = <div style={{ ...badgeBase, background: 'var(--bg4)', color: 'var(--txt3)' }}>—</div>;
 
@@ -174,8 +187,8 @@ export default function WeeklyPerformanceCard({ trades }: WeeklyPerformanceCardP
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--txt2)' }}>
                 <Icon name={def.icon} size={13} color="var(--gold)" /> {def.label}
               </div>
-              <span style={{ textAlign: 'right', fontSize: 12, color: 'var(--txt3)', fontFamily: 'var(--mono)' }}>{show(aVal)}</span>
-              <span style={{ textAlign: 'right', fontSize: 13, fontWeight: 600, color: 'var(--gold2)', fontFamily: 'var(--mono)' }}>{show(cVal)}</span>
+              <span style={{ textAlign: 'right', fontSize: 12, opacity: 0.75, color: valueColor(key, aVal, 'var(--txt3)'), fontFamily: 'var(--mono)' }}>{show(aVal)}</span>
+              <span style={{ textAlign: 'right', fontSize: 13, fontWeight: 600, color: valueColor(key, cVal, 'var(--gold2)'), fontFamily: 'var(--mono)' }}>{show(cVal)}</span>
               <ChangeBadge anterior={aVal} actual={cVal} better={def.better} delta={def.delta} />
             </div>
           );
