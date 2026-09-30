@@ -11,10 +11,12 @@ interface MetricCardProps {
   spark?: number[];
   sparkColor?: string;
   highlight?: boolean;
+  /** Green for gains, red for losses; gold for informational figures (default). */
+  valueColor?: string;
   delay?: number;
 }
 
-export default function MetricCard({ label, value, sub, sub2, trend, spark, sparkColor, highlight, delay = 0 }: MetricCardProps) {
+export default function MetricCard({ label, value, sub, sub2, trend, spark, sparkColor, highlight, valueColor, delay = 0 }: MetricCardProps) {
   return (
     <div
       className="fade-up"
@@ -54,7 +56,7 @@ export default function MetricCard({ label, value, sub, sub2, trend, spark, spar
             style={{
               fontSize: 26,
               fontWeight: 700,
-              color: highlight ? 'var(--gold2)' : 'var(--txt)',
+              color: valueColor ?? 'var(--gold2)',
               fontFamily: 'var(--mono)',
               letterSpacing: '-0.02em',
               animationDelay: `${delay + 100}ms`,

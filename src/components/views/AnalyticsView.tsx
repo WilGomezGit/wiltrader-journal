@@ -61,7 +61,7 @@ export default function AnalyticsView({ trades, stats, strategies, assets }: Ana
     { label: 'Reducción máxima', val: has ? `${pct(stats.maxDrawdown.pct, 2)} · ${money(stats.maxDrawdown.amount)}` : '—', color: 'var(--red)' },
     { label: 'Factor de ganancia', val: profitFactor(stats.profitFactor, has), color: 'var(--gold2)' },
     { label: 'Expectativa por trade', val: has ? signedMoney(stats.expectancy) : '—', color: tone(stats.expectancy) },
-    { label: 'Consistencia', val: stats.consistency === null ? '—' : pct(stats.consistency, 0), color: 'var(--txt)' },
+    { label: 'Consistencia', val: stats.consistency === null ? '—' : pct(stats.consistency, 0), color: 'var(--gold2)' },
   ];
 
   return (
@@ -128,7 +128,7 @@ export default function AnalyticsView({ trades, stats, strategies, assets }: Ana
                       return el;
                     });
                   })()}
-                  <text x="60" y="56" textAnchor="middle" fill="var(--txt)" fontSize="14" fontWeight="700" fontFamily="JetBrains Mono">{totalAsset}</text>
+                  <text x="60" y="56" textAnchor="middle" fill="var(--gold2)" fontSize="14" fontWeight="700" fontFamily="JetBrains Mono">{totalAsset}</text>
                   <text x="60" y="70" textAnchor="middle" fill="var(--txt3)" fontSize="9">trades</text>
                 </svg>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)', flex: 1, minWidth: 160 }}>

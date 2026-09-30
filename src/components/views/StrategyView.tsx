@@ -35,7 +35,7 @@ export default function StrategyView({ strategyText, onSave }: StrategyViewProps
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Icon name="strategy" size={20} color="var(--gold)" />
           <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--txt)', lineHeight: 1 }}>Mi Estrategia</h1>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--gold2)', lineHeight: 1 }}>Mi Estrategia</h1>
             <p style={{ fontSize: 12, color: 'var(--txt3)', marginTop: 4 }}>Plan de trading personal — guardado en Firestore</p>
           </div>
         </div>

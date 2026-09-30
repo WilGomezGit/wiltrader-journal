@@ -103,7 +103,7 @@ export default function Sidebar({ onSignOut, traderName = 'WilTrader', strategyT
           border: '1px solid var(--border)',
           marginBottom: 8,
         }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--txt)' }}>{traderName}</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold2)' }}>{traderName}</div>
           <div style={{ fontSize: 10, color: 'var(--txt3)', marginTop: 2 }}>Pro Trader</div>
         </div>
         <button

@@ -15,7 +15,7 @@ export function Card({ title, subtitle, actions, children, style, pad = 'var(--s
       {(title || actions) && (
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--sp-4)', marginBottom: 'var(--sp-4)', padding: pad === 'var(--sp-5)' ? 0 : '0 var(--sp-5)' }}>
           <div>
-            {title && <h2 style={{ fontSize: 14, fontWeight: 600 }}>{title}</h2>}
+            {title && <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--gold2)' }}>{title}</h2>}
             {subtitle && <p style={{ fontSize: 12, color: 'var(--txt3)', marginTop: 'var(--sp-1)' }}>{subtitle}</p>}
           </div>
           {actions && <div style={{ display: 'flex', gap: 'var(--sp-2)', alignItems: 'center' }}>{actions}</div>}
@@ -30,7 +30,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
       <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.2 }}>{title}</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.2, color: 'var(--gold2)' }}>{title}</h1>
         {subtitle && <p style={{ fontSize: 13, color: 'var(--txt3)', marginTop: 'var(--sp-1)' }}>{subtitle}</p>}
       </div>
       {actions && <div style={{ display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap' }}>{actions}</div>}
@@ -102,7 +102,7 @@ export function Stat({ label, value, color, sub }: { label: string; value: React
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
       <span style={{ fontSize: 11, color: 'var(--txt3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</span>
-      <span style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--mono)', color: color ?? 'var(--txt)' }}>{value}</span>
+      <span style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--mono)', color: color ?? 'var(--gold2)' }}>{value}</span>
       {sub && <span style={{ fontSize: 11, color: 'var(--txt3)' }}>{sub}</span>}
     </div>
   );
