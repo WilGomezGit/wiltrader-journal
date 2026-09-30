@@ -23,6 +23,8 @@ export default function Sidebar({ onSignOut, traderName = 'WilTrader', strategyT
 
   return (
     <aside style={{
+      position: 'relative',
+      zIndex: 1,
       width: 220,
       flexShrink: 0,
       background: 'var(--bg2)',
