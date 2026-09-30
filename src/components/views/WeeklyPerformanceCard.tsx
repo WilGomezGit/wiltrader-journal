@@ -80,7 +80,10 @@ function valueColor(key: keyof WeekStats, v: number | null, fallback: string): s
   return v > 0 ? 'var(--green)' : 'var(--red)';
 }
 
-const badgeBase: React.CSSProperties = { padding: '4px 10px', borderRadius: 6, fontSize: 12, fontFamily: 'var(--mono)', textAlign: 'center', minWidth: 72 };
+// Same fixed columns in the header and in every row, so each figure sits under its own heading.
+const COLS = 'minmax(150px, 1fr) 120px 120px 84px';
+
+const badgeBase: React.CSSProperties = { padding: '4px 10px', borderRadius: 6, fontSize: 12, fontFamily: 'var(--mono)', textAlign: 'center', minWidth: 0 };
 const dash = <div style={{ ...badgeBase, background: 'var(--bg4)', color: 'var(--txt3)' }}>—</div>;
 
 function ChangeBadge({ anterior, actual, better, delta = 'pct' }: { anterior: number | null; actual: number | null; better: Better; delta?: Delta }) {
@@ -171,19 +174,20 @@ export default function WeeklyPerformanceCard({ trades }: WeeklyPerformanceCardP
         </div>
       </div>
 
-      <div style={{ padding: 'var(--sp-2) var(--sp-5)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '10px 16px', alignItems: 'center', padding: '8px 0', fontSize: 10, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ padding: 'var(--sp-2) var(--sp-5)', overflowX: 'auto' }}>
+        <div style={{ minWidth: 480 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: '10px 16px', alignItems: 'center', padding: '8px 0', fontSize: 10, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)' }}>
           <span />
           <span style={{ textAlign: 'right' }}>Semana anterior</span>
           <span style={{ textAlign: 'right' }}>{inProgress ? 'Esta semana' : 'Última semana'}</span>
-          <span style={{ minWidth: 72, textAlign: 'center' }}>Cambio</span>
+          <span style={{ textAlign: 'center' }}>Cambio</span>
         </div>
         {metrics.map(({ key, def }) => {
           const aVal = anterior[key] as number | null;
           const cVal = actual[key] as number | null;
           const show = (v: number | null) => (v === null ? '—' : def.format(v));
           return (
-            <div key={key} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '10px 16px', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
+            <div key={key} style={{ display: 'grid', gridTemplateColumns: COLS, gap: '10px 16px', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--txt2)' }}>
                 <Icon name={def.icon} size={13} color="var(--gold)" /> {def.label}
               </div>
@@ -193,6 +197,7 @@ export default function WeeklyPerformanceCard({ trades }: WeeklyPerformanceCardP
             </div>
           );
         })}
+        </div>
         <p style={{ fontSize: 11, color: 'var(--txt3)', padding: 'var(--sp-3) 0 0', lineHeight: 1.5 }}>
           «—» significa que no hay dato en ese período (por ejemplo, sin operaciones perdedoras no existe «peor día» ni «pérdida promedio»).
           Factor de ganancia «∞»: ganancias sin ninguna pérdida. Todo en P&L neto (después de comisiones y swap).
