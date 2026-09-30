@@ -1,8 +1,10 @@
 'use client';
+import { useMemo, useState } from 'react';
 import BarChart from '@/components/charts/BarChart';
+import CumulativeChart, { type ChartPoint } from '@/components/charts/CumulativeChart';
 import { Card, PageHeader } from '@/components/ui/kit';
 import { computeStats, netPnl, type Stats } from '@/lib/analytics';
-import { money, pct, profitFactor, signedMoney, tone } from '@/lib/format';
+import { money, pct, profitFactor, shortDate, signedMoney, tone } from '@/lib/format';
 import type { Trade } from '@/types';
 
 interface AnalyticsViewProps {
@@ -17,6 +19,18 @@ const empty = <div style={{ color: 'var(--txt3)', fontSize: 12, textAlign: 'cent
 const compact = (v: number) => `${v < 0 ? '-' : '+'}$${Math.abs(v) >= 1000 ? `${(Math.abs(v) / 1000).toFixed(1)}k` : Math.abs(v).toFixed(0)}`;
 
 export default function AnalyticsView({ trades, stats, strategies, assets }: AnalyticsViewProps) {
+  const [curveMode, setCurveMode] = useState<'day' | 'trade'>('day');
+
+  // Cumulative net P&L starting at 0, so the curve is gold while in profit and red while in loss.
+  const curve = useMemo<ChartPoint[]>(() => {
+    if (stats.totalTrades === 0) return [];
+    if (curveMode === 'trade') {
+      return stats.equity.map((p, i) => ({ label: i === 0 ? 'Inicio' : shortDate(p.date), value: p.balance - stats.initialBalance }));
+    }
+    let cum = 0;
+    return [{ label: 'Inicio', value: 0 }, ...stats.daily.map((d) => { cum += d.pnl; return { label: shortDate(d.key), value: cum }; })];
+  }, [stats, curveMode]);
+
   const byStrategy = [...new Set([...strategies, ...trades.map((t) => t.strategy)])]
     .map((s) => ({ s, st: trades.filter((t) => t.strategy === s) }))
     .filter((x) => x.st.length > 0)
@@ -54,6 +68,19 @@ export default function AnalyticsView({ trades, stats, strategies, assets }: Ana
     <div style={{ height: '100%', overflowY: 'auto', paddingRight: 'var(--sp-2)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)', paddingBottom: 'var(--sp-5)' }}>
         <PageHeader title="Analítica" subtitle="Cómo rinde cada estrategia, hora y activo (P&L neto)" />
+        <Card title="Curva de equity" subtitle="P&L neto acumulado · dorado en ganancia, rojo en pérdida" style={{ flexShrink: 0 }}
+          actions={
+            <div role="group" aria-label="Agrupar curva" style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+              {([['day', 'Por día'], ['trade', 'Por operación']] as const).map(([k, label]) => (
+                <button key={k} type="button" onClick={() => setCurveMode(k)} style={{
+                  padding: '7px 14px', border: 'none', fontSize: 12, cursor: 'pointer',
+                  background: curveMode === k ? 'var(--gold-dim)' : 'transparent', color: curveMode === k ? 'var(--gold)' : 'var(--txt3)',
+                }}>{label}</button>
+              ))}
+            </div>
+          }>
+          <CumulativeChart points={curve} emptyText="Registra operaciones para ver tu curva" />
+        </Card>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 'var(--sp-5)' }}>
           <Card title="Rendimiento por estrategia">
             {byStrategy.length > 0 ? (

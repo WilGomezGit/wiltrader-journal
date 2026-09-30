@@ -107,10 +107,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, []);
 
-  // First run after multi-account support: turn the legacy single-account data into a first account.
+  // One-time migration of data created before multi-account support: it only runs when there are
+  // trades that belong to no account. Having no accounts and no data (a new user, or someone who
+  // deleted everything) must stay empty instead of inventing an account with the old balance.
+  const hasLegacyTrades = allTrades.some((t) => !t.accountId);
   useEffect(() => {
-    if (!user || accountsLoading || !settingsLoaded || migrating.current) return;
-    if (accounts.length > 0) return;
+    if (!user || accountsLoading || tradesLoading || !settingsLoaded || migrating.current) return;
+    if (accounts.length > 0 || !hasLegacyTrades) return;
     migrating.current = true;
     (async () => {
       try {
@@ -127,7 +130,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         migrating.current = false;
       }
     })();
-  }, [user, accounts.length, accountsLoading, settingsLoaded, settings.broker, settings.baseCurrency, settings.initialBalance, addAccountFn]);
+  }, [user, accounts.length, accountsLoading, tradesLoading, hasLegacyTrades, settingsLoaded, settings.broker, settings.baseCurrency, settings.initialBalance, addAccountFn]);
 
   // Restore the selected scope once per user, then only repair it if the chosen account disappears.
   useEffect(() => {
@@ -179,7 +182,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [accounts, allTrades, cashflows, today, basis]
   );
 
-  const scopeLabel = viewAccountId === ALL_ACCOUNTS ? 'Todas las cuentas' : (scopeAccount?.name ?? 'Sin cuenta');
+  const scopeLabel = accounts.length === 0 ? 'Sin cuentas' : viewAccountId === ALL_ACCOUNTS ? 'Todas las cuentas' : (scopeAccount?.name ?? 'Sin cuenta');
 
   const addAccount = (data: NewAccountData) => addAccountFn(data);
   const updateAccount = (id: string, data: AccountPatch) => updateAccountFn(id, data);
