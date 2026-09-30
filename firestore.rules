@@ -1,16 +1,42 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    // The referenced account must exist and belong to the signed-in user.
+    function ownsAccount(accountId) {
+      return accountId is string
+        && get(/databases/$(database)/documents/accounts/$(accountId)).data.userId == request.auth.uid;
+    }
+
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if signedIn() && request.auth.uid == userId;
     }
-    match /trades/{tradeId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
+
     match /accounts/{accountId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read, update, delete: if signedIn() && request.auth.uid == resource.data.userId;
+      allow create: if signedIn() && request.auth.uid == request.resource.data.userId;
+    }
+
+    match /trades/{tradeId} {
+      allow read, delete: if signedIn() && request.auth.uid == resource.data.userId;
+      allow create: if signedIn()
+        && request.auth.uid == request.resource.data.userId
+        && ownsAccount(request.resource.data.accountId);
+      // The owner can edit, and can only move a trade to another account of their own.
+      allow update: if signedIn()
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.userId == resource.data.userId
+        && ownsAccount(request.resource.data.accountId);
+    }
+
+    match /cashflows/{cashflowId} {
+      allow read, delete: if signedIn() && request.auth.uid == resource.data.userId;
+      allow create: if signedIn()
+        && request.auth.uid == request.resource.data.userId
+        && ownsAccount(request.resource.data.accountId);
+      allow update: if false;
     }
   }
 }

@@ -32,13 +32,13 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Top bar */}
         <header style={{
-          height: 52,
+          height: 60,
           borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',
-          padding: '0 20px',
-          gap: 12,
+          padding: '0 var(--page-pad)',
+          gap: 'var(--sp-4)',
           background: 'var(--bg2)',
           flexShrink: 0,
         }}>
@@ -92,7 +92,7 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main style={{ flex: 1, overflow: 'hidden', padding: 20 }}>
+        <main style={{ flex: 1, overflow: 'hidden', padding: 'var(--page-pad)' }}>
           {children}
         </main>
       </div>

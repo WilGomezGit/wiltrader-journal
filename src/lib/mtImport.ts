@@ -7,12 +7,15 @@ export interface ImportedTrade {
   asset: string;
   type: 'Buy' | 'Sell';
   entry: number;
+  exitPrice: number;
   sl: number;
   tp: number;
   lotSize: number;
+  /** Gross result, before costs. */
   result: number;
+  /** Costs as positive numbers (MetaTrader reports them as negatives). */
   commission: number;
-  status: 'Win' | 'Loss' | 'BE';
+  swap: number;
   ticket: string;
 }
 
@@ -134,8 +137,6 @@ export async function parseMtReport(file: File): Promise<MtImportResult> {
     const commissionRaw = num(row[10]);
     const swapRaw = num(row[11]);
     const profitRaw = num(row[12]);
-    const fees = -(commissionRaw + swapRaw);
-    const net = profitRaw - fees;
 
     trades.push({
       date: `${two(closeTime.getMonth() + 1)}/${two(closeTime.getDate())}/${closeTime.getFullYear()}`,
@@ -143,12 +144,13 @@ export async function parseMtReport(file: File): Promise<MtImportResult> {
       asset: String(row[2] ?? '').trim(),
       type,
       entry: num(row[5]),
+      exitPrice: num(row[9]),
       sl: num(row[6]),
       tp: num(row[7]),
       lotSize: num(row[4]),
       result: profitRaw,
-      commission: fees,
-      status: net > 0 ? 'Win' : net < 0 ? 'Loss' : 'BE',
+      commission: -commissionRaw,
+      swap: -swapRaw,
       ticket: String(row[1] ?? ''),
     });
   }

@@ -8,7 +8,7 @@ import Icon from '@/components/ui/Icon';
 type Tab = 'plan' | 'analyzer';
 
 export default function StrategyPage() {
-  const { settings, updateSettings, trades, activeAccount, stats } = useApp();
+  const { settings, updateSettings, trades, scopeInitialBalance } = useApp();
   const [tab, setTab] = useState<Tab>('analyzer');
 
   const tabBtn = (active: boolean): React.CSSProperties => ({
@@ -22,8 +22,8 @@ export default function StrategyPage() {
   });
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', gap: 8 }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)' }}>
+      <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
         <button type="button" style={tabBtn(tab === 'analyzer')} onClick={() => setTab('analyzer')}>
           <Icon name="analytics" size={13} /> Analizador de Estrategia
         </button>
@@ -34,7 +34,7 @@ export default function StrategyPage() {
 
       <div style={{ flex: 1, minHeight: 0 }}>
         {tab === 'analyzer' ? (
-          <StrategyAnalyzer trades={trades} initialBalance={activeAccount?.initialBalance ?? settings.initialBalance ?? stats.totalBalance} />
+          <StrategyAnalyzer trades={trades} initialBalance={scopeInitialBalance} />
         ) : (
           <StrategyView
             strategyText={settings.strategyText ?? ''}

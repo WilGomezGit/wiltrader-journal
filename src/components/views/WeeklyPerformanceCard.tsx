@@ -1,6 +1,8 @@
 'use client';
 import { startOfWeek, endOfWeek, subWeeks } from 'date-fns';
 import Icon from '@/components/ui/Icon';
+import { computeStats, filterTrades } from '@/lib/analytics';
+import { toISODate } from '@/lib/dates';
 import type { Trade } from '@/types';
 
 interface WeekStats {
@@ -17,45 +19,23 @@ interface WeekStats {
   losses: number;
 }
 
-const net = (t: Trade) => t.result - (t.commission || 0);
-
 function computeWeekStats(trades: Trade[], start: Date, end: Date): WeekStats {
-  const inWeek = trades.filter((t) => {
-    const d = new Date(t.date);
-    return !isNaN(d.getTime()) && d >= start && d <= end;
-  });
-
-  const nets = inWeek.map(net);
-  const wins = nets.filter((n) => n >= 0);
-  const losses = nets.filter((n) => n < 0);
-  const grossProfit = wins.reduce((s, n) => s + n, 0);
-  const grossLoss = Math.abs(losses.reduce((s, n) => s + n, 0));
-
-  const byDay = new Map<string, number>();
-  for (const t of inWeek) byDay.set(t.date, (byDay.get(t.date) || 0) + net(t));
-  const dayTotals = [...byDay.values()];
-
-  const chrono = [...inWeek].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  let running = 0, peak = 0, maxDD = 0;
-  for (const t of chrono) {
-    running += net(t);
-    if (running > peak) peak = running;
-    const dd = peak - running;
-    if (dd > maxDD) maxDD = dd;
-  }
-
+  const fromIso = toISODate(`${start.getFullYear()}-${start.getMonth() + 1}-${start.getDate()}`);
+  const toIso = toISODate(`${end.getFullYear()}-${end.getMonth() + 1}-${end.getDate()}`);
+  const s = computeStats(filterTrades(trades, { from: fromIso, to: toIso }), {});
   return {
-    netProfit: nets.reduce((s, n) => s + n, 0),
-    totalTrades: inWeek.length,
-    winRate: inWeek.length ? (wins.length / inWeek.length) * 100 : 0,
-    profitFactor: grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? 100 : 0),
-    maxDrawdown: maxDD,
-    bestDay: dayTotals.length ? Math.max(...dayTotals) : 0,
-    worstDay: dayTotals.length ? Math.min(...dayTotals) : 0,
-    avgWin: wins.length ? grossProfit / wins.length : 0,
-    avgLoss: losses.length ? grossLoss / losses.length : 0,
-    wins: wins.length,
-    losses: losses.length,
+    netProfit: s.pnl,
+    totalTrades: s.totalTrades,
+    winRate: s.winRate,
+    // The card caps the profit factor at 100 when there are no losses, so the comparison stays numeric.
+    profitFactor: s.profitFactor === Infinity ? 100 : s.profitFactor,
+    maxDrawdown: s.maxDrawdown.amount,
+    bestDay: s.bestDay?.pnl ?? 0,
+    worstDay: s.worstDay?.pnl ?? 0,
+    avgWin: s.avgWin,
+    avgLoss: s.avgLoss,
+    wins: s.wins,
+    losses: s.losses,
   };
 }
 
@@ -129,7 +109,7 @@ export default function WeeklyPerformanceCard({ trades }: WeeklyPerformanceCardP
     <div className="fade-up" style={{ background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', overflow: 'hidden', flexShrink: 0 }}>
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '12px 20px', background: netChange < 0 ? 'rgba(239,68,68,0.08)' : netChange > 0 ? 'rgba(34,197,94,0.08)' : 'var(--bg3)',
+        padding: 'var(--sp-4) var(--sp-5)', background: netChange < 0 ? 'rgba(239,68,68,0.08)' : netChange > 0 ? 'rgba(34,197,94,0.08)' : 'var(--bg3)',
         borderBottom: '1px solid var(--border)',
       }}>
         <span style={{ fontSize: 14, fontWeight: 600 }}>Rendimiento General</span>
@@ -139,7 +119,7 @@ export default function WeeklyPerformanceCard({ trades }: WeeklyPerformanceCardP
         </div>
       </div>
 
-      <div style={{ padding: '4px 20px' }}>
+      <div style={{ padding: 'var(--sp-2) var(--sp-5)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '10px 16px', alignItems: 'center', padding: '8px 0', fontSize: 10, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)' }}>
           <span />
           <span style={{ textAlign: 'right' }}>Anterior</span>
@@ -150,7 +130,7 @@ export default function WeeklyPerformanceCard({ trades }: WeeklyPerformanceCardP
           const aVal = anterior[key];
           const cVal = actual[key];
           return (
-            <div key={key} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '10px 16px', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+            <div key={key} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '10px 16px', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--txt2)' }}>
                 <Icon name={def.icon} size={13} color="var(--gold)" /> {def.label}
               </div>
@@ -162,7 +142,7 @@ export default function WeeklyPerformanceCard({ trades }: WeeklyPerformanceCardP
         })}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 20px 20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: 'var(--sp-4) var(--sp-5) var(--sp-5)' }}>
         <div style={{ background: 'var(--bg3)', borderRadius: 10, padding: '12px 16px' }}>
           <div style={{ fontSize: 10, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>La Semana Pasada</div>
           <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{anterior.wins} G / {anterior.losses} P</div>

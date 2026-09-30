@@ -1,15 +1,20 @@
 'use client';
-import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useTrades } from '@/hooks/useTrades';
-import { migrateLegacyTrades, bulkImportTrades } from '@/lib/trades';
+import { useCashflows } from '@/hooks/useCashflows';
+import { addTrade as addTradeDoc, updateTrade, deleteTrade as deleteTradeDoc, deleteAllTrades as deleteAllTradesDocs, migrateLegacyTrades, bulkImportTrades, type ImportResult } from '@/lib/trades';
+import { addCashflow as addCashflowDoc, deleteCashflow } from '@/lib/cashflows';
 import { getUserSettings, saveUserSettings, DEFAULT_SETTINGS } from '@/lib/settings';
-import { computeStats } from '@/lib/stats';
-import type { Trade, TradeFormData, UserSettings, Stats, TrmData, Account } from '@/types';
-import type { NewAccountData } from '@/lib/accounts';
+import { consolidate, summarizeAccount, type AccountSummary, type Basis, type ConsolidatedSummary, type Stats } from '@/lib/analytics';
+import { todayISO, tradeTimestamp } from '@/lib/dates';
+import type { Trade, TradeFormData, UserSettings, TrmData, Account, Cashflow } from '@/types';
+import type { NewAccountData, AccountPatch } from '@/lib/accounts';
 import type { ImportedTrade } from '@/lib/mtImport';
+
+export const ALL_ACCOUNTS = 'all';
 
 interface AppContextValue {
   user: ReturnType<typeof useAuth>['user'];
@@ -18,62 +23,79 @@ interface AppContextValue {
   signUp: ReturnType<typeof useAuth>['signUp'];
   signOut: ReturnType<typeof useAuth>['signOut'];
   signInWithGoogle: ReturnType<typeof useAuth>['signInWithGoogle'];
+
+  accounts: Account[];
+  activeAccounts: Account[];
+  accountsLoading: boolean;
+  /** 'all' or an account id. Decides which accounts every screen is looking at. */
+  viewAccountId: string;
+  setViewAccount: (id: string) => void;
+  scopeAccounts: Account[];
+  scopeLabel: string;
+  /** The single account in scope, or null when viewing all accounts. */
+  scopeAccount: Account | null;
+
+  allTrades: Trade[];
+  /** Trades of the accounts in scope, newest first. */
   trades: Trade[];
   tradesLoading: boolean;
+  cashflows: Cashflow[];
+
+  basis: Basis;
+  setBasis: (b: Basis) => void;
   stats: Stats;
+  consolidated: ConsolidatedSummary;
+  scopeInitialBalance: number;
+  scopeBalance: number;
+  /** One summary per account (including inactive ones), each computed only from its own trades. */
+  summaries: AccountSummary[];
+
   settings: UserSettings;
+  updateSettings: (s: Partial<UserSettings>) => Promise<void>;
   showCOP: boolean;
   toggleCOP: () => void;
   copRate: number;
   trmData: TrmData;
+
   addTrade: (data: TradeFormData) => Promise<void>;
   editTrade: (id: string, data: Partial<TradeFormData>) => Promise<void>;
   deleteTrade: (id: string) => Promise<void>;
-  deleteAllTrades: () => Promise<void>;
-  updateSettings: (s: Partial<UserSettings>) => Promise<void>;
-  accounts: Account[];
-  accountsLoading: boolean;
-  activeAccount: Account | null;
-  activeAccountId: string | null;
-  switchAccount: (id: string) => void;
+  deleteAllTrades: (accountId: string) => Promise<void>;
+  importTrades: (accountId: string, trades: ImportedTrade[], strategy: string) => Promise<ImportResult>;
+
   addAccount: (data: NewAccountData) => Promise<string>;
-  renameAccount: (id: string, data: Partial<Omit<Account, 'id' | 'userId' | 'createdAt'>>) => Promise<void>;
+  updateAccount: (id: string, data: AccountPatch) => Promise<void>;
   deleteAccount: (id: string) => Promise<void>;
-  importTrades: (accountId: string, trades: ImportedTrade[], strategy: string) => Promise<number>;
+  addCashflow: (data: { accountId: string; type: Cashflow['type']; amount: number; date: string; note?: string }) => Promise<void>;
+  removeCashflow: (id: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const EMPTY_STATS: Stats = {
-  totalBalance: 20000,
-  totalPL: 0, totalPLCOP: 0,
-  winRate: 0, totalTrades: 0, wins: 0, losses: 0,
-  bestTrade: 0, worstTrade: 0, avgWin: 0, avgLoss: 0,
-  profitFactor: 0, maxDrawdown: 0, currentDrawdown: 0,
-  expectancy: 0, sharpeRatio: 0, winStreak: 0, lossStreak: 0,
-  equityCurve: [20000],
-};
-
-const activeAccountKey = (uid: string) => `wiltrader.activeAccount.${uid}`;
+const viewKey = (uid: string) => `wiltrader.view.${uid}`;
+const legacyViewKey = (uid: string) => `wiltrader.activeAccount.${uid}`;
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { user, loading, signIn, signUp, signOut, signInWithGoogle } = useAuth();
-  const { accounts, loading: accountsLoading, error: accountsError, add: addAccountFn, update: updateAccountFn, remove: removeAccountFn } = useAccounts(user?.uid ?? null);
+  const uid = user?.uid ?? null;
+  const { accounts, loading: accountsLoading, error: accountsError, add: addAccountFn, update: updateAccountFn, remove: removeAccountFn } = useAccounts(uid);
+  const { trades: allTrades, loading: tradesLoading, error: tradesError } = useTrades(uid);
+  const cashflows = useCashflows(uid);
+
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [showCOP, setShowCOP] = useState(true);
   const [trmData, setTrmData] = useState<TrmData>({ rate: 4200, source: 'fallback' });
-  const [activeAccountId, setActiveAccountId] = useState<string | null>(null);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [viewAccountId, setViewAccountId] = useState<string>(ALL_ACCOUNTS);
+  const [basis, setBasis] = useState<Basis>('net');
   const migrating = useRef(false);
+  const restoredFor = useRef<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     setSettingsLoaded(false);
     getUserSettings(user.uid).then((s) => {
-      setSettings(s);
-      if (s.email === '' && user.email) {
-        setSettings((prev) => ({ ...prev, email: user.email! }));
-      }
+      setSettings(s.email === '' && user.email ? { ...s, email: user.email } : s);
       setSettingsLoaded(true);
     });
   }, [user]);
@@ -85,76 +107,86 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, []);
 
-  // Auto-create a first account (migrating legacy single-account data) once settings + accounts have loaded.
+  // First run after multi-account support: turn the legacy single-account data into a first account.
   useEffect(() => {
     if (!user || accountsLoading || !settingsLoaded || migrating.current) return;
     if (accounts.length > 0) return;
     migrating.current = true;
     (async () => {
-      const id = await addAccountFn({
-        name: 'Cuenta Principal',
-        broker: settings.broker || DEFAULT_SETTINGS.broker,
-        baseCurrency: settings.baseCurrency || DEFAULT_SETTINGS.baseCurrency,
-        initialBalance: settings.initialBalance ?? DEFAULT_SETTINGS.initialBalance,
-      });
-      await migrateLegacyTrades(user.uid, id);
-      setActiveAccountId(id);
-      migrating.current = false;
+      try {
+        const id = await addAccountFn({
+          name: 'Cuenta Principal',
+          kind: 'personal',
+          broker: settings.broker || DEFAULT_SETTINGS.broker,
+          baseCurrency: settings.baseCurrency || DEFAULT_SETTINGS.baseCurrency,
+          initialBalance: settings.initialBalance ?? DEFAULT_SETTINGS.initialBalance,
+        });
+        await migrateLegacyTrades(user.uid, id);
+        setViewAccountId(id);
+      } finally {
+        migrating.current = false;
+      }
     })();
   }, [user, accounts.length, accountsLoading, settingsLoaded, settings.broker, settings.baseCurrency, settings.initialBalance, addAccountFn]);
 
-  // Restore / validate the selected account per-user.
+  // Restore the selected scope once per user, then only repair it if the chosen account disappears.
   useEffect(() => {
-    if (!user || accounts.length === 0) return;
-    const stored = typeof window !== 'undefined' ? window.localStorage.getItem(activeAccountKey(user.uid)) : null;
-    const valid = stored && accounts.some((a) => a.id === stored);
-    setActiveAccountId((prev) => {
-      if (prev && accounts.some((a) => a.id === prev)) return prev;
-      return valid ? stored! : accounts[0].id;
-    });
-  }, [user, accounts]);
+    if (!uid || accounts.length === 0) return;
+    const valid = (id: string) => id === ALL_ACCOUNTS || accounts.some((a) => a.id === id);
+    const fallback = (accounts.find((a) => a.active) ?? accounts[0]).id;
+    if (restoredFor.current !== uid) {
+      restoredFor.current = uid;
+      const stored = window.localStorage.getItem(viewKey(uid)) ?? window.localStorage.getItem(legacyViewKey(uid));
+      setViewAccountId(stored && valid(stored) ? stored : fallback);
+    } else if (!valid(viewAccountId)) {
+      setViewAccountId(fallback);
+    }
+  }, [uid, accounts, viewAccountId]);
 
-  const switchAccount = (id: string) => {
-    setActiveAccountId(id);
-    if (user) window.localStorage.setItem(activeAccountKey(user.uid), id);
+  const setViewAccount = (id: string) => {
+    setViewAccountId(id);
+    if (uid) window.localStorage.setItem(viewKey(uid), id);
   };
 
-  const activeAccount = accounts.find((a) => a.id === activeAccountId) ?? null;
-
-  const { trades, loading: tradesLoading, error: tradesError, add, update, remove, removeAll } = useTrades(user?.uid ?? null, activeAccountId);
-
   useEffect(() => {
-    if (accountsError) {
-      const needsIndex = accountsError.message.includes('index');
-      toast.error(
-        needsIndex
-          ? 'Firestore necesita un índice para las cuentas. Revisa la consola del navegador: el error trae un enlace para crearlo en un clic.'
-          : 'No se pudieron cargar tus cuentas.',
-        { id: 'accounts-error', duration: 8000 }
-      );
-    }
+    if (accountsError) toast.error('No se pudieron cargar tus cuentas.', { id: 'accounts-error', duration: 8000 });
   }, [accountsError]);
-
   useEffect(() => {
-    if (tradesError) {
-      const needsIndex = tradesError.message.includes('index');
-      toast.error(
-        needsIndex
-          ? 'Firestore necesita un índice para los trades. Revisa la consola del navegador: el error trae un enlace para crearlo en un clic.'
-          : 'No se pudieron cargar tus trades.',
-        { id: 'trades-error', duration: 8000 }
-      );
-    }
+    if (tradesError) toast.error('No se pudieron cargar tus trades.', { id: 'trades-error', duration: 8000 });
   }, [tradesError]);
 
-  const stats = trades.length > 0
-    ? computeStats(trades, activeAccount?.initialBalance ?? settings.initialBalance)
-    : { ...EMPTY_STATS, totalBalance: activeAccount?.initialBalance ?? settings.initialBalance, equityCurve: [activeAccount?.initialBalance ?? settings.initialBalance] };
+  const today = todayISO();
+  const activeAccounts = useMemo(() => accounts.filter((a) => a.active), [accounts]);
+  const scopeAccounts = useMemo(
+    () => (viewAccountId === ALL_ACCOUNTS ? activeAccounts : accounts.filter((a) => a.id === viewAccountId)),
+    [viewAccountId, accounts, activeAccounts]
+  );
+  const scopeAccount = viewAccountId === ALL_ACCOUNTS ? null : (accounts.find((a) => a.id === viewAccountId) ?? null);
 
-  const addTrade = async (data: TradeFormData) => { await add(data); };
-  const editTrade = async (id: string, data: Partial<TradeFormData>) => { await update(id, data); };
-  const deleteTrade = async (id: string) => { await remove(id); };
-  const deleteAllTrades = async () => { await removeAll(); };
+  const trades = useMemo(() => {
+    const ids = new Set(scopeAccounts.map((a) => a.id));
+    return allTrades
+      .filter((t) => ids.has(t.accountId))
+      .sort((a, b) => tradeTimestamp(b) - tradeTimestamp(a) || b.createdAt - a.createdAt);
+  }, [allTrades, scopeAccounts]);
+
+  const consolidated = useMemo(
+    () => consolidate(scopeAccounts, allTrades, cashflows, today, basis),
+    [scopeAccounts, allTrades, cashflows, today, basis]
+  );
+  const summaries = useMemo(
+    () => accounts.map((a) => summarizeAccount(a, allTrades, cashflows, today, basis)),
+    [accounts, allTrades, cashflows, today, basis]
+  );
+
+  const scopeLabel = viewAccountId === ALL_ACCOUNTS ? 'Todas las cuentas' : (scopeAccount?.name ?? 'Sin cuenta');
+
+  const addAccount = (data: NewAccountData) => addAccountFn(data);
+  const updateAccount = (id: string, data: AccountPatch) => updateAccountFn(id, data);
+  const deleteAccount = async (id: string) => {
+    await removeAccountFn(id);
+    if (viewAccountId === id) setViewAccount(ALL_ACCOUNTS);
+  };
 
   const updateSettings = async (s: Partial<UserSettings>) => {
     if (!user) return;
@@ -163,35 +195,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await saveUserSettings(user.uid, merged);
   };
 
-  const addAccount = async (data: NewAccountData) => addAccountFn(data);
-  const renameAccount = async (id: string, data: Partial<Omit<Account, 'id' | 'userId' | 'createdAt'>>) => { await updateAccountFn(id, data); };
-  const deleteAccount = async (id: string) => {
-    await removeAccountFn(id);
-    if (activeAccountId === id) {
-      const remaining = accounts.filter((a) => a.id !== id);
-      if (remaining.length > 0) switchAccount(remaining[0].id);
-    }
+  const value: AppContextValue = {
+    user, loading, signIn, signUp, signOut, signInWithGoogle,
+    accounts, activeAccounts, accountsLoading,
+    viewAccountId, setViewAccount, scopeAccounts, scopeLabel, scopeAccount,
+    allTrades, trades, tradesLoading, cashflows,
+    basis, setBasis,
+    stats: consolidated.stats,
+    consolidated,
+    scopeInitialBalance: scopeAccounts.reduce((s, a) => s + a.initialBalance, 0),
+    scopeBalance: consolidated.totalBalance,
+    summaries,
+    settings, updateSettings,
+    showCOP, toggleCOP: () => setShowCOP((p) => !p),
+    copRate: trmData.rate, trmData,
+    addTrade: async (data) => { if (user) await addTradeDoc(user.uid, data); },
+    editTrade: (id, data) => updateTrade(id, data),
+    deleteTrade: (id) => deleteTradeDoc(id),
+    deleteAllTrades: async (accountId) => { if (user) await deleteAllTradesDocs(user.uid, accountId); },
+    importTrades: async (accountId, imported, strategy) =>
+      user ? bulkImportTrades(user.uid, accountId, imported, { strategy, copRate: trmData.rate }) : { imported: 0, skipped: 0 },
+    addAccount, updateAccount, deleteAccount,
+    addCashflow: async (data) => { if (user) await addCashflowDoc(user.uid, data); },
+    removeCashflow: (id) => deleteCashflow(id),
   };
 
-  const importTrades = async (accountId: string, importedTrades: ImportedTrade[], strategy: string) => {
-    if (!user) return 0;
-    return bulkImportTrades(user.uid, accountId, importedTrades, { strategy, copRate: trmData.rate });
-  };
-
-  return (
-    <AppContext.Provider value={{
-      user, loading, signIn, signUp, signOut, signInWithGoogle,
-      trades, tradesLoading, stats,
-      settings, showCOP, toggleCOP: () => setShowCOP((p) => !p),
-      copRate: trmData.rate,
-      trmData,
-      addTrade, editTrade, deleteTrade, deleteAllTrades, updateSettings,
-      accounts, accountsLoading, activeAccount, activeAccountId,
-      switchAccount, addAccount, renameAccount, deleteAccount, importTrades,
-    }}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
 export function useApp() {

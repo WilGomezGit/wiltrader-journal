@@ -28,7 +28,7 @@ export default function StrategyView({ strategyText, onSave }: StrategyViewProps
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 860 }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)', maxWidth: 860 }}>
 
       {/* Header */}
       <div className="fade-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -96,14 +96,14 @@ export default function StrategyView({ strategyText, onSave }: StrategyViewProps
             autoFocus
             placeholder="Describe tu plan de trading: criterios de entrada, gestión de riesgo, marcos temporales, reglas de salida, psicología..."
             style={{
-              width: '100%', height: '100%', padding: '24px',
+              width: '100%', height: '100%', padding: 'var(--sp-5)',
               background: 'transparent', border: 'none', outline: 'none',
               color: 'var(--txt)', fontSize: 14, lineHeight: 1.8,
               resize: 'none', fontFamily: 'Inter, sans-serif',
             }}
           />
         ) : text ? (
-          <div style={{ padding: '24px', height: '100%', overflowY: 'auto' }}>
+          <div style={{ padding: 'var(--sp-5)', height: '100%', overflowY: 'auto' }}>
             <pre style={{
               whiteSpace: 'pre-wrap', wordBreak: 'break-word',
               fontSize: 14, lineHeight: 1.8, color: 'var(--txt)',
