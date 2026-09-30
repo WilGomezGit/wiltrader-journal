@@ -1,13 +1,20 @@
 'use client';
 import { useRef, useEffect } from 'react';
 
-export default function CandleBG() {
+interface CandleBGProps {
+  /** Faint variant for behind the app: no opaque backdrop, low opacity, never intercepts clicks. */
+  subtle?: boolean;
+}
+
+export default function CandleBG({ subtle = false }: CandleBGProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
+    // Respect users who asked the OS for less motion: leave the faint variant static (empty).
+    if (subtle && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let W = (canvas.width = window.innerWidth);
     let H = (canvas.height = window.innerHeight);
     const onResize = () => { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; };
@@ -43,7 +50,7 @@ export default function CandleBG() {
 
     const particles: Particle[] = [];
     const splashes: Splash[] = [];
-    for (let i = 0; i < 32; i++) particles.push(mkCandle(R(-H * 0.1, H * 1.05)));
+    for (let i = 0; i < (subtle ? 22 : 32); i++) particles.push(mkCandle(R(-H * 0.1, H * 1.05)));
 
     const burst = (x: number, bull: boolean) => {
       const col = bull ? [55, 195, 105] : [215, 65, 65];
@@ -96,13 +103,15 @@ export default function CandleBG() {
     const draw = () => {
       ctx.clearRect(0, 0, W, H);
 
-      const bg = ctx.createLinearGradient(0, 0, W * 0.5, H);
-      bg.addColorStop(0, '#0a0f18'); bg.addColorStop(0.5, '#0c1420'); bg.addColorStop(1, '#091018');
-      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+      if (!subtle) {
+        const bg = ctx.createLinearGradient(0, 0, W * 0.5, H);
+        bg.addColorStop(0, '#0a0f18'); bg.addColorStop(0.5, '#0c1420'); bg.addColorStop(1, '#091018');
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-      const gl = ctx.createRadialGradient(W * 0.38, H * 0.44, 0, W * 0.38, H * 0.44, W * 0.5);
-      gl.addColorStop(0, 'rgba(12,50,68,0.18)'); gl.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
+        const gl = ctx.createRadialGradient(W * 0.38, H * 0.44, 0, W * 0.38, H * 0.44, W * 0.5);
+        gl.addColorStop(0, 'rgba(12,50,68,0.18)'); gl.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
+      }
 
       for (let i = particles.length - 1; i >= 0; i--) {
         const c = particles[i];
@@ -159,21 +168,31 @@ export default function CandleBG() {
         }
       }
 
-      // top fade mask
-      const tm = ctx.createLinearGradient(0, 0, 0, 10);
-      tm.addColorStop(0, 'rgba(10,15,24,1)'); tm.addColorStop(1, 'rgba(10,15,24,0)');
-      ctx.fillStyle = tm; ctx.fillRect(0, 0, W, 10);
+      if (!subtle) {
+        // top fade mask
+        const tm = ctx.createLinearGradient(0, 0, 0, 10);
+        tm.addColorStop(0, 'rgba(10,15,24,1)'); tm.addColorStop(1, 'rgba(10,15,24,0)');
+        ctx.fillStyle = tm; ctx.fillRect(0, 0, W, 10);
 
-      const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.12, W / 2, H / 2, W * 0.74);
-      vig.addColorStop(0, 'rgba(10,15,24,0.05)'); vig.addColorStop(0.55, 'rgba(10,15,24,0.22)'); vig.addColorStop(1, 'rgba(7,10,16,0.78)');
-      ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+        const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.12, W / 2, H / 2, W * 0.74);
+        vig.addColorStop(0, 'rgba(10,15,24,0.05)'); vig.addColorStop(0.55, 'rgba(10,15,24,0.22)'); vig.addColorStop(1, 'rgba(7,10,16,0.78)');
+        ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+      }
 
       frame++; raf = requestAnimationFrame(draw);
     };
 
     raf = requestAnimationFrame(draw);
     return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); };
-  }, []);
+  }, [subtle]);
 
-  return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />;
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      style={subtle
+        ? { position: 'fixed', inset: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none', opacity: 0.6 }
+        : { position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+    />
+  );
 }

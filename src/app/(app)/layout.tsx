@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { AppProvider, useApp } from '@/context/AppContext';
 import Sidebar from '@/components/layout/Sidebar';
 import AccountSwitcher from '@/components/layout/AccountSwitcher';
+import CandleBG from '@/components/auth/CandleBG';
 import { useFirebaseStatus } from '@/hooks/useFirebaseStatus';
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -27,9 +28,10 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
+      <CandleBG subtle />
       <Sidebar onSignOut={signOut} traderName={settings.traderName} strategyText={settings.strategyText} />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative', zIndex: 1 }}>
         {/* Top bar */}
         <header style={{
           height: 60,
