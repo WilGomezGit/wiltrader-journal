@@ -6,12 +6,22 @@ import DonutChart from '@/components/charts/DonutChart';
 import JournalTable from '@/components/trade/JournalTable';
 import TradeForm from '@/components/trade/TradeForm';
 import WeeklyPerformanceCard from '@/components/views/WeeklyPerformanceCard';
+import PropProgress from '@/components/ui/PropProgress';
 import Icon from '@/components/ui/Icon';
-import type { Trade, TradeFormData, Stats, TrmData } from '@/types';
+import { Button, Card, PageHeader } from '@/components/ui/kit';
+import { money, pct, profitFactor, signedMoney, tone } from '@/lib/format';
+import type { PropStatus, Stats } from '@/lib/analytics';
+import type { Account, Trade, TradeFormData, TrmData } from '@/types';
 
 interface DashboardViewProps {
   trades: Trade[];
   stats: Stats;
+  /** Current balance of the accounts in scope (initial capital + cash flows + net P&L). */
+  balance: number;
+  initialBalance: number;
+  scopeLabel: string;
+  /** Only present when a single prop account is in scope. */
+  prop?: { account: Account; status: PropStatus } | null;
   strategies: string[];
   assets: string[];
   onAddTrade: (data: TradeFormData) => Promise<void>;
@@ -21,165 +31,106 @@ interface DashboardViewProps {
   trmData?: TrmData;
 }
 
-export default function DashboardView({ trades, stats, strategies, assets, onAddTrade, onEditTrade, showCOP, copRate = 4200, trmData }: DashboardViewProps) {
+export default function DashboardView({ trades, stats, balance, initialBalance, scopeLabel, prop, strategies, assets, onAddTrade, showCOP, copRate = 4200, trmData }: DashboardViewProps) {
   const [showForm, setShowForm] = useState(false);
+  const has = stats.totalTrades > 0;
 
-  const spark   = stats.equityCurve.slice(-10);
-  const plSpark = trades.slice(-10).map((t) => t.result);
-  const ddSpark = [5, 6, 8, 7.5, 7, 8.5, 9, 8, 7.5, stats.currentDrawdown];
-
-  const fmtUSD = (n: number) => (n >= 0 ? '+$' : '-$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const fmtCOP = (n: number) => (n >= 0 ? '+ COP ' : '- COP ') + Math.abs(n).toLocaleString('es-CO');
-
-  const card: React.CSSProperties = {
-    background: 'var(--bg2)', border: 'var(--card-border)',
-    borderRadius: 'var(--radius)', padding: '18px 20px',
-  };
+  const equity = stats.equity.map((p) => p.balance);
+  const equityData = equity.length > 1 ? equity : [initialBalance, initialBalance];
+  const spark = equity.slice(-12);
+  const plSpark = stats.daily.slice(-12).map((d) => d.pnl);
+  let peak = initialBalance;
+  const ddSpark = equity.slice(-12).map((b) => { peak = Math.max(peak, b); return peak - b; });
 
   return (
-    <div style={{ display: 'flex', gap: 16, height: '100%' }}>
+    <div style={{ display: 'flex', gap: 'var(--sp-5)', height: '100%' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)', minWidth: 0, minHeight: 0, overflowY: 'auto', paddingRight: 'var(--sp-2)' }}>
+        <PageHeader title="Panel" subtitle={`${scopeLabel} · estado actual de tu operativa`} />
 
-      {/* Main column */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, minHeight: 0, overflowY: 'auto', paddingRight: 4 }}>
-
-        {/* TRM fallback alert */}
         {trmData?.fallback && (
-          <div className="fade-in" style={{
-            padding: '8px 14px', borderRadius: 'var(--radius-sm)',
-            background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.25)',
-            fontSize: 11, color: 'var(--gold2)', display: 'flex', alignItems: 'center', gap: 8,
-          }}>
+          <div className="fade-in" style={{ padding: '10px var(--sp-4)', borderRadius: 8, background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.25)', fontSize: 12, color: 'var(--gold2)', display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
             <Icon name="trend_up" size={12} color="var(--gold)" />
             TRM desde {trmData.source} · ${copRate.toLocaleString('es-CO')} COP/USD. No se pudo consultar wilkinsonpc.com.co
           </div>
         )}
 
-        {/* Metric Cards */}
-        <div style={{ display: 'flex', gap: 12 }}>
-          <MetricCard
-            label="Balance de Cuenta"
-            value={`$${stats.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            sub={showCOP ? `COP ${Math.round(stats.totalBalance * copRate).toLocaleString('es-CO')}` : undefined}
-            trend={stats.totalPL >= 0 ? 3.2 : -3.2}
-            spark={spark} sparkColor="var(--gold)" highlight delay={0}
-          />
-          <MetricCard
-            label="Ganancia / Pérdida"
-            value={fmtUSD(stats.totalPL)}
-            sub={showCOP ? fmtCOP(Math.round(stats.totalPL * copRate)) : undefined}
-            spark={plSpark} sparkColor={stats.totalPL >= 0 ? 'var(--green)' : 'var(--red)'} delay={60}
-          />
-          <MetricCard
-            label="Tasa de Victorias"
-            value={`${stats.winRate.toFixed(1)}%`}
-            sub2={`${stats.wins}G / ${stats.losses}P / ${stats.totalTrades} trades`}
-            trend={stats.winRate > 50 ? 4.1 : -2.3} delay={120}
-          />
-          <MetricCard
-            label="Reducción (Drawdown)"
-            value={`${stats.currentDrawdown.toFixed(1)}%`}
-            spark={ddSpark} sparkColor="var(--red)"
-            sub2={`Máx: ${stats.maxDrawdown.toFixed(1)}%`} delay={180}
-          />
+        <div style={{ display: 'flex', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
+          <MetricCard label="Balance" value={money(balance)} highlight delay={0} spark={spark} sparkColor="var(--gold)"
+            sub={showCOP ? `COP ${Math.round(balance * copRate).toLocaleString('es-CO')}` : undefined} />
+          <MetricCard label="P&L neto" value={signedMoney(stats.pnl)} delay={60} spark={plSpark} sparkColor={tone(stats.pnl)}
+            sub2={`Bruto ${signedMoney(stats.pnlGross)} · costos ${money(stats.commissions + stats.swaps + stats.otherCosts)}`} />
+          <MetricCard label="Tasa de victorias" value={has ? pct(stats.winRate) : '—'} delay={120}
+            sub2={`${stats.wins} G · ${stats.losses} P · ${stats.breakeven} B/E`} />
+          <MetricCard label="Drawdown actual" value={has ? pct(stats.currentDrawdown.pct, 2) : '—'} delay={180} spark={ddSpark} sparkColor="var(--red)"
+            sub2={`Máximo: ${pct(stats.maxDrawdown.pct, 2)} (${money(stats.maxDrawdown.amount)})`} />
         </div>
 
-        {/* Rendimiento General — comparación semanal */}
+        {prop && (
+          <Card title={`Fondeo · ${prop.account.name}`} subtitle="Se calcula solo con las operaciones de esta cuenta">
+            <PropProgress account={prop.account} status={prop.status} />
+          </Card>
+        )}
+
         <WeeklyPerformanceCard trades={trades} />
 
-        {/* ① Trading Journal — PRIORITY 1 */}
-        <div className="fade-up" style={{ ...card, animationDelay: '150ms' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>Diario de Trading</span>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--txt3)', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Icon name="filter" size={12} /> Filtrar
-              </button>
-              <button onClick={() => setShowForm(true)} style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--gold)', color: '#0a0a08', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Icon name="plus" size={12} /> Nuevo Trade
-              </button>
-            </div>
-          </div>
+        <Card title="Últimas operaciones" pad="var(--sp-5) 0 var(--sp-2)" actions={<Button variant="primary" onClick={() => setShowForm(true)}><Icon name="plus" size={12} /> Nuevo trade</Button>}
+          style={{ flexShrink: 0 }}>
           <JournalTable trades={trades} compact showCOP={showCOP} copRate={copRate} />
-        </div>
+        </Card>
 
-        {/* ② Equity Curve — PRIORITY 2 */}
-        <div className="fade-up" style={{ ...card, padding: '20px 20px 12px', animationDelay: '250ms' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>Curva de Equity</span>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {['1W', '1M', '3M', '1Y'].map((p) => (
-                <button key={p} style={{
-                  padding: '3px 10px', borderRadius: 6, fontSize: 11,
-                  border: '1px solid var(--border)',
-                  background: p === '1M' ? 'var(--gold-dim)' : 'transparent',
-                  color: p === '1M' ? 'var(--gold)' : 'var(--txt3)', cursor: 'pointer',
-                }}>{p}</button>
-              ))}
-            </div>
-          </div>
-          <EquityChart data={stats.equityCurve.length > 1 ? stats.equityCurve : [stats.totalBalance, stats.totalBalance]} />
-        </div>
-
+        <Card title="Curva de equity" subtitle="Balance de trading: capital inicial + P&L neto acumulado" style={{ flexShrink: 0 }}>
+          <EquityChart data={equityData} />
+        </Card>
       </div>
 
-      {/* Right Panel */}
-      <div style={{ width: 288, flexShrink: 0, background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: '20px', overflowY: 'auto', minHeight: 0 }}>
+      <aside style={{ width: 320, flexShrink: 0, background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)', padding: 'var(--sp-5)', overflowY: 'auto', minHeight: 0 }}>
         {showForm ? (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <span style={{ fontWeight: 600, fontSize: 14 }}>Nuevo Trade</span>
-              <button type="button" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sp-5)' }}>
+              <h2 style={{ fontWeight: 600, fontSize: 15 }}>Nuevo trade</h2>
+              <button type="button" onClick={() => setShowForm(false)} aria-label="Cerrar" style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer', display: 'flex' }}>
                 <Icon name="close" size={16} />
               </button>
             </div>
-            <TradeForm
-              strategies={strategies} assets={assets}
+            <TradeForm strategies={strategies} assets={assets}
               onSave={async (data) => { await onAddTrade(data); setShowForm(false); }}
-              onCancel={() => setShowForm(false)}
-            />
+              onCancel={() => setShowForm(false)} />
           </>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 600, fontSize: 14 }}>Estadísticas Rápidas</span>
-              <button onClick={() => setShowForm(true)} style={{ padding: '6px 12px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--gold)', color: '#0a0a08', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Icon name="plus" size={12} /> Nuevo Trade
-              </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)' }}>
+            <h2 style={{ fontWeight: 600, fontSize: 15 }}>Resumen rápido</h2>
+            <div>
+              {[
+                { label: 'Operaciones', val: String(stats.totalTrades), c: 'var(--txt)' },
+                { label: 'Mejor trade', val: has ? signedMoney(stats.bestTrade) : '—', c: 'var(--green)' },
+                { label: 'Peor trade', val: has ? signedMoney(stats.worstTrade) : '—', c: 'var(--red)' },
+                { label: 'Ganancia promedio', val: stats.wins ? signedMoney(stats.avgWin) : '—', c: 'var(--green)' },
+                { label: 'Pérdida promedio', val: stats.losses ? `-${money(stats.avgLoss)}` : '—', c: 'var(--red)' },
+                { label: 'Factor de ganancia', val: profitFactor(stats.profitFactor, has), c: 'var(--gold2)' },
+                { label: 'Expectativa', val: has ? signedMoney(stats.expectancy) : '—', c: tone(stats.expectancy) },
+              ].map((s) => (
+                <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--txt3)' }}>{s.label}</span>
+                  <span style={{ fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 600, color: s.c }}>{s.val}</span>
+                </div>
+              ))}
             </div>
-
-            {[
-              { label: 'Mejor Trade',      val: `+$${stats.bestTrade.toLocaleString()}`,                        c: 'var(--green)' },
-              { label: 'Peor Trade',       val: `-$${Math.abs(stats.worstTrade).toLocaleString()}`,             c: 'var(--red)'   },
-              { label: 'Ganancia Prom.',   val: `+$${stats.avgWin.toFixed(2)}`,                                c: 'var(--green)' },
-              { label: 'Pérdida Prom.',    val: `-$${stats.avgLoss.toFixed(2)}`,                               c: 'var(--red)'   },
-              { label: 'Factor de Ganancia', val: stats.profitFactor > 0 ? stats.profitFactor.toFixed(2) : '—',  c: 'var(--gold2)' },
-              { label: 'Expectativa',      val: `$${stats.expectancy.toFixed(2)}`,                             c: stats.expectancy >= 0 ? 'var(--green)' : 'var(--red)' },
-              { label: 'Trades',          val: String(stats.totalTrades),                                     c: 'var(--txt)'   },
-            ].map((s, i) => (
-              <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)', animation: `rowIn 0.3s ease ${i * 40}ms both` }}>
-                <span style={{ fontSize: 12, color: 'var(--txt3)' }}>{s.label}</span>
-                <span style={{ fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 600, color: s.c }}>{s.val}</span>
+            {stats.wins + stats.losses > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-4)' }}>
+                <DonutChart segments={[{ value: stats.winRate, color: 'var(--green)' }, { value: stats.lossRate, color: 'var(--red)' }]} />
+                <div style={{ display: 'flex', gap: 'var(--sp-5)' }}>
+                  {[['Ganancia', stats.winRate, 'var(--green)'], ['Pérdida', stats.lossRate, 'var(--red)']].map(([l, v, c]) => (
+                    <div key={String(l)} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: String(c) }} />
+                      <span style={{ color: 'var(--txt2)' }}>{l} {Number(v).toFixed(1)}%</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, paddingTop: 8 }}>
-              <DonutChart segments={[
-                { value: stats.winRate, color: 'var(--green)' },
-                { value: 100 - stats.winRate, color: 'var(--red)' },
-              ]} />
-              <div style={{ display: 'flex', gap: 16 }}>
-                {[['Ganancia', stats.winRate, 'var(--green)'], ['Pérdida', 100 - stats.winRate, 'var(--red)']].map(([l, v, c]) => (
-                  <div key={String(l)} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: String(c) }} />
-                    <span style={{ color: 'var(--txt2)' }}>{l} {Number(v).toFixed(1)}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+            )}
           </div>
         )}
-      </div>
+      </aside>
     </div>
   );
 }

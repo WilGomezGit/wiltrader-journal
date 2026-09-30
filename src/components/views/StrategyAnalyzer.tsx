@@ -1,6 +1,7 @@
 'use client';
 import { useMemo, useState, useId } from 'react';
 import { format, startOfDay, startOfWeek, startOfMonth, startOfYear } from 'date-fns';
+import { netPnl, outcomeOf, totalCosts } from '@/lib/analytics';
 import type { Trade } from '@/types';
 
 type PeriodMode = 'Diario' | 'Semanal' | 'Mensual' | 'Anual';
@@ -35,7 +36,7 @@ interface Row {
   pctOfTrades: number;
 }
 
-const net = (t: Trade) => t.result - (t.commission || 0);
+const net = netPnl;
 
 function bucketFor(date: Date, mode: PeriodMode): { key: string; label: string; sortDate: Date } {
   if (mode === 'Semanal') {
@@ -174,8 +175,8 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
     if (longShort === 'Compra' && t.type !== 'Buy') return false;
     if (longShort === 'Venta' && t.type !== 'Sell') return false;
     const n = net(t);
-    if (wl === 'Ganadoras' && n < 0) return false;
-    if (wl === 'Perdedoras' && n >= 0) return false;
+    if (wl === 'Ganadoras' && outcomeOf(n) !== 'win') return false;
+    if (wl === 'Perdedoras' && outcomeOf(n) !== 'loss') return false;
     return true;
   }), [trades, longShort, wl]);
 
@@ -197,12 +198,12 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
 
     return sortedGroups.map((g): Row => {
       const nets = g.trades.map(net);
-      const wins = nets.filter((n) => n >= 0);
-      const losses = nets.filter((n) => n < 0);
+      const wins = nets.filter((n) => outcomeOf(n) === 'win');
+      const losses = nets.filter((n) => outcomeOf(n) === 'loss');
       const grossProfit = wins.reduce((s, n) => s + n, 0);
       const grossLoss = losses.reduce((s, n) => s + n, 0);
-      const commission = g.trades.reduce((s, t) => s + (t.commission || 0), 0);
-      const periodNet = grossProfit + grossLoss;
+      const commission = g.trades.reduce((s, t) => s + totalCosts(t), 0);
+      const periodNet = nets.reduce((a, n) => a + n, 0);
       cumNet += periodNet;
       equity += periodNet;
       if (equity > peak) peak = equity;
@@ -211,7 +212,8 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
       const chrono = [...g.trades].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       let curW = 0, curL = 0, maxW = 0, maxL = 0;
       for (const t of chrono) {
-        if (net(t) >= 0) { curW++; curL = 0; } else { curL++; curW = 0; }
+        const o = outcomeOf(net(t));
+        if (o === 'win') { curW++; curL = 0; } else if (o === 'loss') { curL++; curW = 0; }
         maxW = Math.max(maxW, curW);
         maxL = Math.max(maxL, curL);
       }
@@ -225,7 +227,7 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
         grossLoss,
         commission,
         cumDrawdown,
-        winRate: (wins.length / g.trades.length) * 100,
+        winRate: wins.length + losses.length ? (wins.length / (wins.length + losses.length)) * 100 : 0,
         avgTrade: periodNet / g.trades.length,
         avgWin: wins.length ? grossProfit / wins.length : 0,
         avgLoss: losses.length ? grossLoss / losses.length : 0,
@@ -255,7 +257,7 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
       grossLoss: rows.reduce((s, r) => s + r.grossLoss, 0),
       commission: rows.reduce((s, r) => s + r.commission, 0),
       cumDrawdown: Math.max(...rows.map((r) => r.cumDrawdown)),
-      winRate: filtered.length ? (filtered.filter((t) => net(t) >= 0).length / filtered.length) * 100 : 0,
+      winRate: (() => { const w = filtered.filter((t) => outcomeOf(net(t)) === 'win').length; const l = filtered.filter((t) => outcomeOf(net(t)) === 'loss').length; return w + l ? (w / (w + l)) * 100 : 0; })(),
     };
   }, [rows, filtered]);
 
@@ -278,22 +280,22 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
   ];
 
   const th: React.CSSProperties = {
-    padding: '8px 12px', textAlign: 'right', fontSize: 10, fontWeight: 600,
+    padding: '12px 16px', textAlign: 'right', fontSize: 10, fontWeight: 600,
     color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '0.03em',
     whiteSpace: 'nowrap', borderBottom: '1px solid var(--border2)',
     position: 'sticky', top: 0, background: 'var(--bg3)', zIndex: 1,
   };
   const td: React.CSSProperties = {
-    padding: '7px 12px', textAlign: 'right', fontSize: 12,
+    padding: '11px 16px', textAlign: 'right', fontSize: 12,
     fontFamily: 'var(--mono)', whiteSpace: 'nowrap', color: 'var(--txt)',
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)', height: '100%', minHeight: 0 }}>
       {/* Filter bar */}
       <div className="fade-up" style={{
         background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)',
-        padding: '14px 18px', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-end',
+        padding: 'var(--sp-4) var(--sp-5)', display: 'flex', gap: 'var(--sp-5)', flexWrap: 'wrap', alignItems: 'flex-end',
       }}>
         <FilterField label="Mostrar" value={display === '$' ? 'Análisis $' : 'Análisis %'} options={['Análisis $', 'Análisis %']} onChange={(v) => setDisplay(v.includes('%') ? '%' : '$')} />
         <FilterField label="Período" value={period} options={['Diario', 'Semanal', 'Mensual', 'Anual']} onChange={(v) => setPeriod(v as PeriodMode)} />
@@ -354,7 +356,7 @@ export default function StrategyAnalyzer({ trades, initialBalance }: StrategyAna
       {/* Graph */}
       <div className="fade-up" style={{
         background: 'var(--bg2)', border: 'var(--card-border)', borderRadius: 'var(--radius)',
-        padding: '16px 18px', flexShrink: 0, animationDelay: '100ms',
+        padding: 'var(--sp-5)', flexShrink: 0, animationDelay: '100ms',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--txt2)' }}>Gráfico</span>

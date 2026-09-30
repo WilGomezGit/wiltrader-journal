@@ -1,9 +1,14 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import JournalTable from '@/components/trade/JournalTable';
 import TradeForm from '@/components/trade/TradeForm';
 import ImportTradesModal from '@/components/trade/ImportTradesModal';
 import Icon from '@/components/ui/Icon';
+import { Button, Card, inputStyle } from '@/components/ui/kit';
+import { useApp, ALL_ACCOUNTS } from '@/context/AppContext';
+import { tradeOutcome, netPnl } from '@/lib/analytics';
+import { tradesToCSV, downloadCSV } from '@/lib/export';
+import { signedMoney, tone } from '@/lib/format';
 import type { Trade, TradeFormData } from '@/types';
 
 interface JournalViewProps {
@@ -17,134 +22,110 @@ interface JournalViewProps {
   copRate?: number;
 }
 
+type SideFilter = 'All' | 'Buy' | 'Sell';
+type OutcomeFilter = 'All' | 'win' | 'loss' | 'be';
+
+const chip = (active: boolean, color = 'var(--gold)', bg = 'var(--gold-dim)'): React.CSSProperties => ({
+  padding: '9px 16px', border: 'none', fontSize: 12, cursor: 'pointer',
+  background: active ? bg : 'transparent', color: active ? color : 'var(--txt3)',
+});
+const segmented: React.CSSProperties = { display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg2)' };
+
 export default function JournalView({ trades, strategies, assets, onAdd, onEdit, onDelete, showCOP, copRate = 4200 }: JournalViewProps) {
+  const { accounts, viewAccountId } = useApp();
   const [search, setSearch] = useState('');
-  const [filterType, setFT] = useState<'All' | 'Buy' | 'Sell'>('All');
-  const [filterStrat, setFS] = useState('All');
-  const [filterStatus, setFStatus] = useState<'All' | 'Win' | 'Loss'>('All');
+  const [side, setSide] = useState<SideFilter>('All');
+  const [strategy, setStrategy] = useState('All');
+  const [outcome, setOutcome] = useState<OutcomeFilter>('All');
   const [showForm, setShowForm] = useState(false);
   const [editTrade, setEditTrade] = useState<Trade | null>(null);
   const [showImport, setShowImport] = useState(false);
 
-  const filtered = trades.filter((t) =>
-    (t.asset.toLowerCase().includes(search.toLowerCase()) || t.strategy.toLowerCase().includes(search.toLowerCase()) || t.notes.toLowerCase().includes(search.toLowerCase())) &&
-    (filterType === 'All' || t.type === filterType) &&
-    (filterStrat === 'All' || t.strategy === filterStrat) &&
-    (filterStatus === 'All' || t.status === filterStatus)
-  );
+  const accountNames = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
 
-  const totalPL = filtered.reduce((s, t) => s + t.result, 0);
+  const filtered = trades.filter((t) => {
+    const q = search.toLowerCase();
+    return (
+      (t.asset.toLowerCase().includes(q) || t.strategy.toLowerCase().includes(q) || (t.notes || '').toLowerCase().includes(q)) &&
+      (side === 'All' || t.type === side) &&
+      (strategy === 'All' || t.strategy === strategy) &&
+      (outcome === 'All' || tradeOutcome(t) === outcome)
+    );
+  });
+
+  const totalNet = filtered.reduce((s, t) => s + netPnl(t), 0);
 
   const handleEdit = (trade: Trade) => { setEditTrade(trade); setShowForm(true); };
+  const handleNew = () => { setEditTrade(null); setShowForm(true); };
   const handleDelete = async (trade: Trade) => {
     if (confirm(`¿Eliminar trade ${trade.asset} ${trade.date}?`)) await onDelete(trade.id);
   };
 
-  const exportCSV = () => {
-    const header = 'Date,Asset,Type,Strategy,Entry,SL,TP,Result(USD),COP,Status,Notes';
-    const rows = filtered.map((t) => `${t.date},${t.asset},${t.type},${t.strategy},${t.entry},${t.sl},${t.tp},${t.result},${t.cop},${t.status},"${t.notes}"`);
-    const csv = [header, ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `wiltrader-journal-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click(); URL.revokeObjectURL(url);
-  };
-
   return (
-    <div style={{ display: 'flex', gap: 16, height: '100%' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
-            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+    <div style={{ display: 'flex', gap: 'var(--sp-5)', height: '100%' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)', minWidth: 0, minHeight: 0, overflowY: 'auto', paddingRight: 'var(--sp-2)' }}>
+        <div style={{ display: 'flex', gap: 'var(--sp-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
               <Icon name="search" size={14} color="var(--txt3)" />
             </span>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar activo, estrategia, notas..."
-              style={{
-                width: '100%', padding: '9px 12px 9px 34px',
-                background: 'var(--bg2)', border: '1px solid var(--border)',
-                borderRadius: 8, color: 'var(--txt)', fontSize: 13, outline: 'none', fontFamily: 'var(--mono)',
-              }}
-            />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar activo, estrategia, notas..."
+              style={{ ...inputStyle, padding: '10px 12px 10px 36px', background: 'var(--bg2)', border: '1px solid var(--border)' }} />
           </div>
-
-          {(['All', 'Buy', 'Sell'] as const).map((f) => (
-            <button key={f} onClick={() => setFT(f)} style={{
-              padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)',
-              background: filterType === f ? 'var(--gold-dim)' : 'var(--bg2)',
-              color: filterType === f ? 'var(--gold)' : 'var(--txt3)',
-              fontSize: 12, cursor: 'pointer',
-            }}>{f === 'All' ? 'Todos' : f === 'Buy' ? 'Compra' : 'Venta'}</button>
-          ))}
-
-          {(['All', 'Win', 'Loss'] as const).map((f) => (
-            <button key={f} onClick={() => setFStatus(f)} style={{
-              padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)',
-              background: filterStatus === f ? (f === 'Win' ? 'var(--green-dim)' : f === 'Loss' ? 'var(--red-dim)' : 'var(--gold-dim)') : 'var(--bg2)',
-              color: filterStatus === f ? (f === 'Win' ? 'var(--green)' : f === 'Loss' ? 'var(--red)' : 'var(--gold)') : 'var(--txt3)',
-              fontSize: 12, cursor: 'pointer',
-            }}>{f === 'All' ? 'Todos' : f === 'Win' ? 'Ganancia' : 'Pérdida'}</button>
-          ))}
-
-          <select
-            value={filterStrat}
-            onChange={(e) => setFS(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--txt2)', fontSize: 12, cursor: 'pointer', outline: 'none' }}
-          >
-            <option value="All">Todas las Estrategias</option>
+          <div style={segmented} role="group" aria-label="Dirección">
+            {(['All', 'Buy', 'Sell'] as const).map((f) => (
+              <button key={f} type="button" onClick={() => setSide(f)} style={chip(side === f)}>{f === 'All' ? 'Todos' : f === 'Buy' ? 'Compra' : 'Venta'}</button>
+            ))}
+          </div>
+          <div style={segmented} role="group" aria-label="Resultado">
+            {(['All', 'win', 'loss', 'be'] as const).map((f) => (
+              <button key={f} type="button" onClick={() => setOutcome(f)}
+                style={chip(outcome === f, f === 'win' ? 'var(--green)' : f === 'loss' ? 'var(--red)' : 'var(--gold)', f === 'win' ? 'var(--green-dim)' : f === 'loss' ? 'var(--red-dim)' : 'var(--gold-dim)')}>
+                {f === 'All' ? 'Todos' : f === 'win' ? 'Ganancia' : f === 'loss' ? 'Pérdida' : 'B/E'}
+              </button>
+            ))}
+          </div>
+          <select value={strategy} onChange={(e) => setStrategy(e.target.value)} aria-label="Estrategia"
+            style={{ ...inputStyle, width: 'auto', padding: '9px 12px', background: 'var(--bg2)', border: '1px solid var(--border)', fontFamily: 'Inter, sans-serif', fontSize: 12, cursor: 'pointer' }}>
+            <option value="All">Todas las estrategias</option>
             {strategies.map((s) => <option key={s}>{s}</option>)}
           </select>
-
-          <button onClick={exportCSV} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--txt3)', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Icon name="download" size={12} /> CSV
-          </button>
-
-          <button onClick={() => setShowImport(true)} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--gold-border)', background: 'var(--gold-dim)', color: 'var(--gold)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Icon name="upload" size={12} /> Importar
-          </button>
-
         </div>
 
-        {/* Table */}
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', flexShrink: 0 }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>{filtered.length} operaciones</span>
-            <span style={{ fontSize: 12, color: 'var(--txt3)' }}>
-              P/L Total:{' '}
-              <span style={{ color: totalPL >= 0 ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)', fontWeight: 600 }}>
-                {totalPL >= 0 ? '+' : ''}${totalPL.toLocaleString()}
+        <Card pad="0" style={{ overflow: 'hidden', flexShrink: 0 }}>
+          <div style={{ padding: 'var(--sp-4) var(--sp-5)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--sp-4)' }}>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>{filtered.length} operaciones</span>
+              <span style={{ fontSize: 12, color: 'var(--txt3)' }}>
+                P&L neto:{' '}<span style={{ color: tone(totalNet), fontFamily: 'var(--mono)', fontWeight: 600 }}>{signedMoney(totalNet)}</span>
               </span>
-            </span>
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
+              <Button onClick={() => downloadCSV(tradesToCSV(filtered, accounts), 'wiltrader-operaciones')}><Icon name="download" size={12} /> Exportar CSV</Button>
+              <Button variant="gold" onClick={() => setShowImport(true)}><Icon name="upload" size={12} /> Importar</Button>
+              <Button variant="primary" onClick={handleNew}><Icon name="plus" size={12} /> Nuevo trade</Button>
+            </div>
           </div>
-          <JournalTable trades={filtered} onEdit={handleEdit} onDelete={handleDelete} showCOP={showCOP} copRate={copRate} />
-        </div>
+          <JournalTable trades={filtered} onEdit={handleEdit} onDelete={handleDelete} showCOP={showCOP} copRate={copRate}
+            accountNames={viewAccountId === ALL_ACCOUNTS ? accountNames : undefined} />
+        </Card>
       </div>
 
-      {/* Side Form */}
       {showForm && (
-        <div style={{ width: 300, flexShrink: 0, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px', overflowY: 'auto', minHeight: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <span style={{ fontWeight: 600, fontSize: 14 }}>{editTrade ? 'Editar Trade' : 'Nuevo Trade'}</span>
-            <button type="button" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer' }}>
+        <aside style={{ width: 340, flexShrink: 0, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 'var(--sp-5)', overflowY: 'auto', minHeight: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sp-5)' }}>
+            <h2 style={{ fontWeight: 600, fontSize: 15 }}>{editTrade ? 'Editar trade' : 'Nuevo trade'}</h2>
+            <button type="button" onClick={() => setShowForm(false)} aria-label="Cerrar" style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer', display: 'flex' }}>
               <Icon name="close" size={16} />
             </button>
           </div>
-          <TradeForm
-            editTrade={editTrade}
-            strategies={strategies}
-            assets={assets}
+          <TradeForm key={editTrade?.id ?? 'new'} editTrade={editTrade} strategies={strategies} assets={assets}
             onSave={async (data) => {
-              if (editTrade) await onEdit(editTrade.id, data);
-              else await onAdd(data);
+              if (editTrade) await onEdit(editTrade.id, data); else await onAdd(data);
               setShowForm(false);
             }}
-            onCancel={() => setShowForm(false)}
-          />
-        </div>
+            onCancel={() => setShowForm(false)} />
+        </aside>
       )}
 
       {showImport && <ImportTradesModal onClose={() => setShowImport(false)} />}

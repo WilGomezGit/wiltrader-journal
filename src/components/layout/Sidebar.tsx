@@ -12,6 +12,7 @@ interface SidebarProps {
 const nav = [
   { href: '/dashboard', icon: 'dashboard' as const, label: 'Panel'      },
   { href: '/journal',   icon: 'journal'   as const, label: 'Diario'     },
+  { href: '/accounts',  icon: 'trophy'    as const, label: 'Cuentas'    },
   { href: '/analytics', icon: 'analytics' as const, label: 'Analítica'  },
   { href: '/strategy',  icon: 'strategy'  as const, label: 'Estrategia' },
   { href: '/settings',  icon: 'settings'  as const, label: 'Ajustes'    },
@@ -50,7 +51,7 @@ export default function Sidebar({ onSignOut, traderName = 'WilTrader', strategyT
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, padding: '12px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <nav style={{ flex: 1, padding: 'var(--sp-4) var(--sp-3)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-1)' }}>
         {nav.map(({ href, icon, label }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           return (
@@ -61,7 +62,7 @@ export default function Sidebar({ onSignOut, traderName = 'WilTrader', strategyT
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
-                padding: '9px 12px',
+                padding: '11px var(--sp-3)',
                 borderRadius: 10,
                 textDecoration: 'none',
                 fontSize: 13,

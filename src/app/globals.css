@@ -28,6 +28,15 @@
   --radius-sm: 8px;
   --card-border: 1px solid var(--gold-border);
   --card-shadow: 0 0 0 0 transparent;
+
+  /* spacing scale: use these instead of ad-hoc pixel values */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --page-pad: 28px;
 }
 
 html, body { height: 100%; background: var(--bg); color: var(--txt); font-family: 'Inter', sans-serif; overflow: hidden; }

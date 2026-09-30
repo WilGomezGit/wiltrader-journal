@@ -1,8 +1,9 @@
 'use client';
 import BarChart from '@/components/charts/BarChart';
-import DonutChart from '@/components/charts/DonutChart';
-import EquityChart from '@/components/charts/EquityChart';
-import type { Trade, Stats } from '@/types';
+import { Card, PageHeader } from '@/components/ui/kit';
+import { computeStats, netPnl, type Stats } from '@/lib/analytics';
+import { money, pct, profitFactor, signedMoney, tone } from '@/lib/format';
+import type { Trade } from '@/types';
 
 interface AnalyticsViewProps {
   trades: Trade[];
@@ -12,132 +13,122 @@ interface AnalyticsViewProps {
 }
 
 const COLORS = ['#c9a227', '#22c55e', '#3b82f6', '#a855f7', '#ef4444', '#f97316', '#06b6d4', '#84cc16'];
+const empty = <div style={{ color: 'var(--txt3)', fontSize: 12, textAlign: 'center', padding: 'var(--sp-6) 0' }}>Sin datos aún</div>;
+const compact = (v: number) => `${v < 0 ? '-' : '+'}$${Math.abs(v) >= 1000 ? `${(Math.abs(v) / 1000).toFixed(1)}k` : Math.abs(v).toFixed(0)}`;
 
 export default function AnalyticsView({ trades, stats, strategies, assets }: AnalyticsViewProps) {
-  const stratData = strategies.map((s) => {
-    const st = trades.filter((t) => t.strategy === s);
-    const pl = st.reduce((a, t) => a + t.result, 0);
-    return { s, pct: st.length ? Math.round(pl / Math.max(st.length, 1)) : 0, trades: st.length, pl };
-  });
+  const byStrategy = [...new Set([...strategies, ...trades.map((t) => t.strategy)])]
+    .map((s) => ({ s, st: trades.filter((t) => t.strategy === s) }))
+    .filter((x) => x.st.length > 0)
+    .map(({ s, st }) => ({ s, count: st.length, pnl: st.reduce((a, t) => a + netPnl(t), 0) }));
 
-  const assetData = assets
-    .map((a) => ({ a, count: trades.filter((t) => t.asset === a).length, pl: trades.filter((t) => t.asset === a).reduce((s, t) => s + t.result, 0) }))
+  const byAsset = [...new Set([...assets, ...trades.map((t) => t.asset)])]
+    .map((a) => ({ a, count: trades.filter((t) => t.asset === a).length }))
     .filter((x) => x.count > 0)
-    .sort((a, b) => b.count - a.count);
+    .sort((x, y) => y.count - x.count);
+  const totalAsset = byAsset.reduce((s, x) => s + x.count, 0) || 1;
 
-  const totalAsset = assetData.reduce((s, x) => s + x.count, 0) || 1;
+  // Real P&L by hour of the trade's recorded time. Trades without a time are left out, never guessed.
+  const timed = trades.filter((t) => /^\d{1,2}:\d{2}/.test(t.time || ''));
+  const byHour = [...new Set(timed.map((t) => parseInt((t.time as string).split(':')[0], 10)))]
+    .sort((a, b) => a - b)
+    .map((h) => {
+      const hourTrades = timed.filter((t) => parseInt((t.time as string).split(':')[0], 10) === h);
+      return { h: `${String(h).padStart(2, '0')}:00`, pnl: computeStats(hourTrades).pnl, count: hourTrades.length };
+    });
+  const bestHour = byHour.length ? byHour.reduce((a, b) => (b.pnl > a.pnl ? b : a)) : null;
 
-  const hourData = Array.from({ length: 9 }, (_, i) => {
-    const h = (8 + i).toString().padStart(2, '0') + ':00';
-    return { h, pct: Math.floor(Math.random() * 50 + 5) };
-  });
+  const has = stats.totalTrades > 0;
+  const summary = [
+    { label: 'P&L neto', val: signedMoney(stats.pnl), color: tone(stats.pnl) },
+    { label: 'P&L bruto', val: signedMoney(stats.pnlGross), color: tone(stats.pnlGross) },
+    { label: 'Mejor racha', val: `${stats.maxWinStreak} trades`, color: 'var(--green)' },
+    { label: 'Peor racha', val: `${stats.maxLossStreak} trades`, color: 'var(--red)' },
+    { label: 'Reducción máxima', val: has ? `${pct(stats.maxDrawdown.pct, 2)} · ${money(stats.maxDrawdown.amount)}` : '—', color: 'var(--red)' },
+    { label: 'Factor de ganancia', val: profitFactor(stats.profitFactor, has), color: 'var(--gold2)' },
+    { label: 'Expectativa por trade', val: has ? signedMoney(stats.expectancy) : '—', color: tone(stats.expectancy) },
+    { label: 'Consistencia', val: stats.consistency === null ? '—' : pct(stats.consistency, 0), color: 'var(--txt)' },
+  ];
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, height: '100%', overflowY: 'auto' }}>
-      {/* Strategy Performance */}
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px' }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Rendimiento por Estrategia</div>
-        {stratData.filter((s) => s.trades > 0).length > 0 ? (
-          <>
-            <BarChart
-              data={stratData.filter((s) => s.trades > 0).map((s) => s.pct)}
-              labels={stratData.filter((s) => s.trades > 0).map((s) => s.s)}
-              colors={stratData.filter((s) => s.trades > 0).map((s) => (s.pct >= 0 ? 'var(--green)' : 'var(--red)'))}
-            />
-            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {stratData.filter((s) => s.trades > 0).map((s) => (
-                <div key={s.s} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--txt2)' }}>
-                  <span>{s.s}</span>
-                  <span style={{ fontFamily: 'var(--mono)' }}>
-                    {s.trades} trades ·{' '}
-                    <span style={{ color: s.pl >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                      {s.pl >= 0 ? '+' : ''}${s.pl.toLocaleString()}
-                    </span>
-                  </span>
+    <div style={{ height: '100%', overflowY: 'auto', paddingRight: 'var(--sp-2)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)', paddingBottom: 'var(--sp-5)' }}>
+        <PageHeader title="Analítica" subtitle="Cómo rinde cada estrategia, hora y activo (P&L neto)" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 'var(--sp-5)' }}>
+          <Card title="Rendimiento por estrategia">
+            {byStrategy.length > 0 ? (
+              <>
+                <BarChart data={byStrategy.map((x) => Math.round(x.pnl))} labels={byStrategy.map((x) => x.s)} format={compact}
+                  colors={byStrategy.map((x) => (x.pnl >= 0 ? 'var(--green)' : 'var(--red)'))} />
+                <div style={{ marginTop: 'var(--sp-4)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+                  {byStrategy.map((x) => (
+                    <div key={x.s} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--txt2)' }}>
+                      <span>{x.s}</span>
+                      <span style={{ fontFamily: 'var(--mono)' }}>{x.count} trades · <span style={{ color: tone(x.pnl) }}>{signedMoney(x.pnl)}</span></span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : empty}
+          </Card>
+
+          <Card title="P&L por hora de cierre" subtitle={timed.length < trades.length ? `${trades.length - timed.length} trades sin hora registrada no se incluyen` : undefined}>
+            {byHour.length > 0 ? (
+              <>
+                <BarChart data={byHour.map((x) => Math.round(x.pnl))} labels={byHour.map((x) => x.h)} format={compact}
+                  colors={byHour.map((x) => (x.pnl >= 0 ? 'var(--green)' : 'var(--red)'))} />
+                {bestHour && byHour.length > 1 && (
+                  <div style={{ marginTop: 'var(--sp-4)', padding: '12px var(--sp-4)', background: 'var(--bg3)', borderRadius: 8, fontSize: 12, color: 'var(--txt2)' }}>
+                    Tu mejor hora de cierre es <span style={{ color: 'var(--gold)' }}>{bestHour.h}</span>: {signedMoney(bestHour.pnl)} en {bestHour.count} trades.
+                  </div>
+                )}
+              </>
+            ) : empty}
+          </Card>
+
+          <Card title="Activos más operados">
+            {byAsset.length > 0 ? (
+              <div style={{ display: 'flex', gap: 'var(--sp-6)', alignItems: 'center', flexWrap: 'wrap' }}>
+                <svg width={140} height={140} viewBox="0 0 120 120" role="img" aria-label="Distribución por activo">
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="var(--bg4)" strokeWidth="18" />
+                  {(() => {
+                    let off = 0;
+                    const circ = 2 * Math.PI * 50;
+                    return byAsset.map((a, i) => {
+                      const dash = (a.count / totalAsset) * circ;
+                      const el = <circle key={a.a} cx="60" cy="60" r="50" fill="none" stroke={COLORS[i % COLORS.length]} strokeWidth="18" strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={-off} transform="rotate(-90 60 60)" />;
+                      off += dash;
+                      return el;
+                    });
+                  })()}
+                  <text x="60" y="56" textAnchor="middle" fill="var(--txt)" fontSize="14" fontWeight="700" fontFamily="JetBrains Mono">{totalAsset}</text>
+                  <text x="60" y="70" textAnchor="middle" fill="var(--txt3)" fontSize="9">trades</text>
+                </svg>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)', flex: 1, minWidth: 160 }}>
+                  {byAsset.map((a, i) => (
+                    <div key={a.a} style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: COLORS[i % COLORS.length], flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: 12, color: 'var(--txt2)' }}>{a.a}</span>
+                      <span style={{ fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 600 }}>{a.count}</span>
+                      <span style={{ fontSize: 11, color: 'var(--txt3)', minWidth: 36, textAlign: 'right' }}>{Math.round((a.count / totalAsset) * 100)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : empty}
+          </Card>
+
+          <Card title="Resumen del período">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)' }}>
+              {summary.map((s) => (
+                <div key={s.label} style={{ background: 'var(--bg3)', borderRadius: 10, padding: 'var(--sp-4)' }}>
+                  <div style={{ fontSize: 10, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 'var(--sp-2)' }}>{s.label}</div>
+                  <div style={{ fontSize: 15, fontFamily: 'var(--mono)', fontWeight: 700, color: s.color }}>{s.val}</div>
                 </div>
               ))}
             </div>
-          </>
-        ) : (
-          <div style={{ color: 'var(--txt3)', fontSize: 12, textAlign: 'center', padding: '40px 0' }}>Sin datos aún</div>
-        )}
-      </div>
-
-      {/* Horas Rentables */}
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px' }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Horas Más Rentables</div>
-        <BarChart
-          data={hourData.map((h) => h.pct)}
-          labels={hourData.map((h) => h.h)}
-          colors={hourData.map((h) => (h.pct > 40 ? 'var(--gold)' : h.pct > 20 ? 'var(--green)' : '#3b82f6'))}
-        />
-        <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg3)', borderRadius: 8, fontSize: 11, color: 'var(--txt2)' }}>
-          <span style={{ color: 'var(--gold)' }}>15:00–16:00</span> es tu ventana más rentable, promedio +55% P/L.
+          </Card>
         </div>
-      </div>
-
-      {/* Assets */}
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 600 }}>Activos Más Operados</div>
-        {assetData.length > 0 ? (
-          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-            <svg width={140} height={140} viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--bg4)" strokeWidth="18" />
-              {(() => {
-                let off = 0;
-                const circ = 2 * Math.PI * 50;
-                return assetData.map((a, i) => {
-                  const dash = (a.count / totalAsset) * circ;
-                  const el = <circle key={i} cx="60" cy="60" r="50" fill="none" stroke={COLORS[i % COLORS.length]} strokeWidth="18" strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={-off} transform="rotate(-90 60 60)" />;
-                  off += dash;
-                  return el;
-                });
-              })()}
-              <text x="60" y="56" textAnchor="middle" fill="var(--txt)" fontSize="14" fontWeight="700" fontFamily="JetBrains Mono">{totalAsset}</text>
-              <text x="60" y="70" textAnchor="middle" fill="var(--txt3)" fontSize="9">trades</text>
-            </svg>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-              {assetData.map((a, i) => (
-                <div key={a.a} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: COLORS[i % COLORS.length], flexShrink: 0 }} />
-                  <span style={{ flex: 1, fontSize: 12, color: 'var(--txt2)' }}>{a.a}</span>
-                  <span style={{ fontSize: 12, fontFamily: 'var(--mono)', color: COLORS[i % COLORS.length], fontWeight: 600 }}>{a.count}</span>
-                  <span style={{ fontSize: 11, color: 'var(--txt3)' }}>{Math.round((a.count / totalAsset) * 100)}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div style={{ color: 'var(--txt3)', fontSize: 12, textAlign: 'center', padding: '40px 0' }}>Sin datos aún</div>
-        )}
-      </div>
-
-      {/* Summary */}
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px' }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Resumen del Período</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {[
-            { label: 'P/L Total',          val: `${stats.totalPL >= 0 ? '+' : ''}$${stats.totalPL.toLocaleString()}`, color: stats.totalPL >= 0 ? 'var(--green)' : 'var(--red)' },
-            { label: 'Total COP',          val: `${stats.totalPLCOP >= 0 ? '+' : ''}${Math.abs(stats.totalPLCOP).toLocaleString()}`, color: stats.totalPLCOP >= 0 ? 'var(--green)' : 'var(--red)' },
-            { label: 'Mejor Racha',        val: `${stats.winStreak} trades`,  color: 'var(--green)' },
-            { label: 'Peor Racha',         val: `${stats.lossStreak} trades`, color: 'var(--red)'   },
-            { label: 'Reducción Máxima',   val: `${stats.maxDrawdown.toFixed(1)}%`, color: 'var(--red)'   },
-            { label: 'Ratio de Sharpe',    val: stats.sharpeRatio.toFixed(2), color: stats.sharpeRatio > 1 ? 'var(--gold2)' : 'var(--txt)' },
-            { label: 'Expectativa',        val: `$${stats.expectancy.toFixed(2)}`, color: stats.expectancy >= 0 ? 'var(--green)' : 'var(--red)' },
-            { label: 'Factor de Ganancia', val: stats.profitFactor > 0 ? stats.profitFactor.toFixed(2) : '—', color: 'var(--gold2)' },
-          ].map((s) => (
-            <div key={s.label} style={{ background: 'var(--bg3)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ fontSize: 10, color: 'var(--txt3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{s.label}</div>
-              <div style={{ fontSize: 15, fontFamily: 'var(--mono)', fontWeight: 700, color: s.color }}>{s.val}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Equity Curve full width */}
-      <div style={{ gridColumn: '1 / -1', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px' }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Curva de Equity Completa</div>
-        <EquityChart data={stats.equityCurve.length > 1 ? stats.equityCurve : [20000, 20000]} />
       </div>
     </div>
   );
