@@ -32,6 +32,8 @@ export default function AccountForm({ account, onSave, onClose }: AccountFormPro
   const [notes, setNotes] = useState(account?.prop?.notes ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // New accounts start by choosing the type, so a personal account is never asked for prop-firm rules.
+  const [step, setStep] = useState<'kind' | 'details'>(account ? 'details' : 'kind');
 
   const initial = parseFloat(balance) || 0;
   const pctOf = (v: string) => (initial > 0 && parseFloat(v) > 0 ? `${((parseFloat(v) / initial) * 100).toFixed(2)}% del balance` : undefined);
@@ -69,17 +71,47 @@ export default function AccountForm({ account, onSave, onClose }: AccountFormPro
 
   const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-4)' };
 
-  return (
-    <Modal title={account ? 'Editar cuenta' : 'Nueva cuenta'} onClose={onClose} width={620}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)' }}>
-        <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border2)' }}>
-          {(['prop', 'personal'] as const).map((k) => (
-            <button key={k} type="button" onClick={() => setKind(k)} style={{
-              flex: 1, padding: '10px', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              background: kind === k ? 'var(--gold-dim)' : 'var(--bg4)', color: kind === k ? 'var(--gold)' : 'var(--txt3)',
-            }}>{k === 'prop' ? 'Fondeo / Prop Firm' : 'Personal'}</button>
+  if (step === 'kind') {
+    const options: { k: AccountKind; title: string; text: string }[] = [
+      { k: 'prop', title: 'Cuenta de fondeo', text: 'Prop firm con objetivo de beneficio y límites de pérdida.' },
+      { k: 'personal', title: 'Cuenta personal', text: 'Tu propio capital en un broker, sin reglas de fondeo.' },
+    ];
+    return (
+      <Modal title="Nueva cuenta" onClose={onClose} width={560}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>
+          <p style={{ fontSize: 13, color: 'var(--txt2)' }}>¿Qué tipo de cuenta quieres crear?</p>
+          {options.map((o) => (
+            <button key={o.k} type="button" onClick={() => { setKind(o.k); setStep('details'); }} style={{
+              textAlign: 'left', padding: 'var(--sp-4) var(--sp-5)', borderRadius: 12, cursor: 'pointer',
+              border: '1px solid var(--border2)', background: 'var(--bg3)', color: 'var(--txt)',
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--gold2)' }}>{o.title}</div>
+              <div style={{ fontSize: 12, color: 'var(--txt3)', marginTop: 4 }}>{o.text}</div>
+            </button>
           ))}
         </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal title={account ? 'Editar cuenta' : kind === 'prop' ? 'Nueva cuenta de fondeo' : 'Nueva cuenta personal'} onClose={onClose} width={620}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)' }}>
+        {!account && (
+          <button type="button" onClick={() => setStep('kind')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--txt3)', fontSize: 12, cursor: 'pointer', padding: 0 }}>
+            ← Cambiar tipo de cuenta
+          </button>
+        )}
+        {account && (
+          <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border2)' }}>
+            {(['prop', 'personal'] as const).map((k) => (
+              <button key={k} type="button" onClick={() => setKind(k)} style={{
+                flex: 1, padding: '10px', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                background: kind === k ? 'var(--gold-dim)' : 'var(--bg4)', color: kind === k ? 'var(--gold)' : 'var(--txt3)',
+              }}>{k === 'prop' ? 'Fondeo / Prop Firm' : 'Personal'}</button>
+            ))}
+          </div>
+        )}
 
         <div style={grid}>
           <Field label="Nombre de la cuenta"><input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === 'prop' ? 'FundingPips 5K' : 'IC Markets Personal'} /></Field>

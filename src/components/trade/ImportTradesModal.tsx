@@ -20,6 +20,9 @@ export default function ImportTradesModal({ onClose }: { onClose: () => void }) 
   const [parsed, setParsed] = useState<MtImportResult | null>(null);
   const [destination, setDestination] = useState('__new__');
   const [newKind, setNewKind] = useState<AccountKind>('prop');
+  const [target, setTarget] = useState('');
+  const [maxLoss, setMaxLoss] = useState('');
+  const [maxDaily, setMaxDaily] = useState('');
   const [strategy, setStrategy] = useState('Importado MT5');
   const [result, setResult] = useState({ imported: 0, skipped: 0 });
 
@@ -54,7 +57,7 @@ export default function ImportTradesModal({ onClose }: { onClose: () => void }) 
           accountNumber: parsed.accountInfo.accountNumber || undefined,
           baseCurrency: parsed.accountInfo.currency,
           initialBalance: estimated > 0 ? estimated : 10000,
-          prop: newKind === 'prop' ? { phase: 'Challenge', profitTarget: 0, maxTotalLoss: 0, maxDailyLoss: 0 } : undefined,
+          prop: newKind === 'prop' ? { phase: 'Challenge', profitTarget: parseFloat(target) || 0, maxTotalLoss: parseFloat(maxLoss) || 0, maxDailyLoss: parseFloat(maxDaily) || 0 } : undefined,
         });
       }
       if (!settings.strategies.includes(strategy)) await updateSettings({ strategies: [...settings.strategies, strategy] });
@@ -109,12 +112,19 @@ export default function ImportTradesModal({ onClose }: { onClose: () => void }) 
             </select>
           </Field>
           {destination === '__new__' && (
-            <Field label="Tipo de la cuenta nueva" hint={newKind === 'prop' ? 'Después completa objetivo y límites en Cuentas.' : undefined}>
+            <Field label="Tipo de la cuenta nueva">
               <select value={newKind} onChange={(e) => setNewKind(e.target.value as AccountKind)} style={{ ...inputStyle, cursor: 'pointer' }}>
                 <option value="prop">Fondeo / Prop Firm</option>
                 <option value="personal">Personal</option>
               </select>
             </Field>
+          )}
+          {destination === '__new__' && newKind === 'prop' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--sp-3)' }}>
+              <Field label="Objetivo de beneficio"><input style={inputStyle} type="number" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="500" /></Field>
+              <Field label="Pérdida máx. total"><input style={inputStyle} type="number" value={maxLoss} onChange={(e) => setMaxLoss(e.target.value)} placeholder="500" /></Field>
+              <Field label="Pérdida máx. diaria"><input style={inputStyle} type="number" value={maxDaily} onChange={(e) => setMaxDaily(e.target.value)} placeholder="250" /></Field>
+            </div>
           )}
           <Field label="Etiqueta de estrategia para estos trades">
             <input value={strategy} onChange={(e) => setStrategy(e.target.value)} style={inputStyle} />
