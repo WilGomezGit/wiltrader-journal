@@ -5,6 +5,7 @@ import EquityChart from '@/components/charts/EquityChart';
 import DonutChart from '@/components/charts/DonutChart';
 import JournalTable from '@/components/trade/JournalTable';
 import TradeForm from '@/components/trade/TradeForm';
+import ImportTradesModal from '@/components/trade/ImportTradesModal';
 import WeeklyPerformanceCard from '@/components/views/WeeklyPerformanceCard';
 import PropProgress from '@/components/ui/PropProgress';
 import Icon from '@/components/ui/Icon';
@@ -33,6 +34,7 @@ interface DashboardViewProps {
 
 export default function DashboardView({ trades, stats, balance, initialBalance, scopeLabel, prop, strategies, assets, onAddTrade, showCOP, copRate = 4200, trmData }: DashboardViewProps) {
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const has = stats.totalTrades > 0;
 
   const equity = stats.equity.map((p) => p.balance);
@@ -74,7 +76,7 @@ export default function DashboardView({ trades, stats, balance, initialBalance, 
 
         <WeeklyPerformanceCard trades={trades} />
 
-        <Card title="Últimas operaciones" pad="var(--sp-5) 0 var(--sp-2)" actions={<Button variant="primary" onClick={() => setShowForm(true)}><Icon name="plus" size={12} /> Nuevo trade</Button>}
+        <Card title="Últimas operaciones" pad="var(--sp-5) 0 var(--sp-2)" actions={<div style={{ display: 'flex', gap: 'var(--sp-2)' }}><Button variant="gold" onClick={() => setShowImport(true)}><Icon name="upload" size={12} /> Importar Excel</Button><Button variant="primary" onClick={() => setShowForm(true)}><Icon name="plus" size={12} /> Nuevo trade</Button></div>}
           style={{ flexShrink: 0 }}>
           <JournalTable trades={trades} compact showCOP={showCOP} copRate={copRate} />
         </Card>
@@ -134,6 +136,7 @@ export default function DashboardView({ trades, stats, balance, initialBalance, 
           </div>
         )}
       </aside>
+      {showImport && <ImportTradesModal onClose={() => setShowImport(false)} />}
     </div>
   );
 }
