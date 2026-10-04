@@ -216,7 +216,7 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
           </Field>
           {destination === '__new__' && (
             <Field label="¿Es una prueba de fondeo?" hint={guessed && newKind === 'prop' ? `Detectado por el nombre de la empresa del reporte (${parsed.accountInfo.broker}). Cámbialo si no es así.` : undefined}>
-              <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border2)' }}>
+              <div className="seg" style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border2)' }}>
                 {([['prop', 'Sí, fondeo'], ['personal', 'No, personal']] as const).map(([k, label]) => (
                   <button key={k} type="button" onClick={() => { setNewKind(k); setGuessed(false); }} style={{
                     flex: 1, padding: '10px', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',

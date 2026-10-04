@@ -70,7 +70,7 @@ export default function AnalyticsView({ trades, stats, strategies, assets }: Ana
         <PageHeader title="Analítica" subtitle="Cómo rinde cada estrategia, hora y activo (P&L neto)" />
         <Card title="Curva de equity" subtitle="P&L neto acumulado · dorado en ganancia, rojo en pérdida" style={{ flexShrink: 0 }}
           actions={
-            <div role="group" aria-label="Agrupar curva" style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <div className="seg" role="group" aria-label="Agrupar curva" style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
               {([['day', 'Por día'], ['trade', 'Por operación']] as const).map(([k, label]) => (
                 <button key={k} type="button" onClick={() => setCurveMode(k)} style={{
                   padding: '7px 14px', border: 'none', fontSize: 12, cursor: 'pointer',

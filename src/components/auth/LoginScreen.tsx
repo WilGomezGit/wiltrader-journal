@@ -134,7 +134,7 @@ export default function LoginScreen({ onLogin, onSignUp, onGoogle }: LoginScreen
         </div>
 
         {/* Mode toggle */}
-        <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 24 }}>
+        <div className="seg" style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 24 }}>
           {(['login', 'signup'] as const).map((m) => (
             <button
               key={m}

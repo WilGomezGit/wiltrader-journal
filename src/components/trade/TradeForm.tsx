@@ -100,7 +100,7 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
       </div>
 
       <Field label="Tipo">
-        <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border2)' }}>
+        <div className="seg" style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border2)' }}>
           {(['Buy', 'Sell'] as const).map((t) => (
             <button key={t} type="button" onClick={() => setForm((f) => ({ ...f, type: t }))} style={{
               flex: 1, padding: '10px', border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s',

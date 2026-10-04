@@ -104,7 +104,7 @@ export default function AccountForm({ account, onSave, onClose }: AccountFormPro
           </button>
         )}
         {account && (
-          <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border2)' }}>
+          <div className="seg" style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border2)' }}>
             {(['prop', 'personal'] as const).map((k) => (
               <button key={k} type="button" onClick={() => setKind(k)} style={{
                 flex: 1, padding: '10px', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
