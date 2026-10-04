@@ -53,7 +53,7 @@ export function Button({ variant = 'ghost', style, children, ...rest }: ButtonHT
   const base: CSSProperties = {
     padding: '9px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: rest.disabled ? 'not-allowed' : 'pointer',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap',
-    opacity: rest.disabled ? 0.6 : 1, transition: 'all 0.15s',
+    opacity: rest.disabled ? 0.6 : 1,
   };
   const variants: Record<Variant, CSSProperties> = {
     primary: { border: 'none', background: 'linear-gradient(135deg,#b8880a,#d4a500,#e8c45a)', color: '#0a0a08', fontWeight: 700 },

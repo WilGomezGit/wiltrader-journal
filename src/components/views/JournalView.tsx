@@ -72,12 +72,12 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar activo, estrategia, notas..."
               style={{ ...inputStyle, padding: '10px 12px 10px 36px', background: 'var(--bg2)', border: '1px solid var(--border)' }} />
           </div>
-          <div style={segmented} role="group" aria-label="Dirección">
+          <div className="seg" style={segmented} role="group" aria-label="Dirección">
             {(['All', 'Buy', 'Sell'] as const).map((f) => (
               <button key={f} type="button" onClick={() => setSide(f)} style={chip(side === f)}>{f === 'All' ? 'Todos' : f === 'Buy' ? 'Compra' : 'Venta'}</button>
             ))}
           </div>
-          <div style={segmented} role="group" aria-label="Resultado">
+          <div className="seg" style={segmented} role="group" aria-label="Resultado">
             {(['All', 'win', 'loss', 'be'] as const).map((f) => (
               <button key={f} type="button" onClick={() => setOutcome(f)}
                 style={chip(outcome === f, f === 'win' ? 'var(--green)' : f === 'loss' ? 'var(--red)' : 'var(--gold)', f === 'win' ? 'var(--green-dim)' : f === 'loss' ? 'var(--red-dim)' : 'var(--gold-dim)')}>
