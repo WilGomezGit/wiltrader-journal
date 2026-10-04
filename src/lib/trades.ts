@@ -77,7 +77,7 @@ export async function deleteAllTrades(userId: string, accountId: string): Promis
   }
 }
 
-const ticketFromNotes = (notes: unknown) => String(notes ?? '').match(/Posición #(\d+)/)?.[1];
+export const ticketFromNotes = (notes: unknown) => String(notes ?? '').match(/Posición #(\d+)/)?.[1];
 
 export interface ImportResult { imported: number; skipped: number; /** Already-imported trades whose time was converted to Colombian time. */ converted: number }
 

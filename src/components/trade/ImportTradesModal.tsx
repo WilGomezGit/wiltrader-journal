@@ -7,6 +7,8 @@ import { useApp } from '@/context/AppContext';
 import { parseMtReport, type MtImportResult } from '@/lib/mtImport';
 import { signedMoney, tone } from '@/lib/format';
 import type { AccountKind, PropPhase } from '@/types';
+import { ticketFromNotes } from '@/lib/trades';
+import { tradeTimestamp } from '@/lib/dates';
 import { PROP_PRESETS, presetAmounts, presetById } from '@/lib/propPresets';
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // broker statements are small; reject anything unexpected up front.
@@ -14,10 +16,22 @@ const MAX_FILE_SIZE = 15 * 1024 * 1024; // broker statements are small; reject a
 // Prop firms show up as the "company" in the MT report, so the account type can be guessed from it.
 const PROP_FIRMS = /funding ?pips|ftmo|the5ers|e8|funded ?next|apex|topstep|myforexfunds|alpha ?capital|blueberry ?funded|fundednext|goat ?funded|fxify|the ?funded ?trader|prop|funded|funding/i;
 
+function NewTradeRow({ t }: { t: MtImportResult['trades'][number] }) {
+  const net = t.result - t.commission - t.swap;
+  return (
+    <div style={{ display: 'flex', gap: 'var(--sp-3)', alignItems: 'center', padding: '7px 12px', fontSize: 12, fontFamily: 'var(--mono)', borderBottom: '1px solid var(--border)' }}>
+      <span style={{ color: 'var(--txt3)', minWidth: 112 }}>{t.date} {t.time}</span>
+      <span style={{ color: 'var(--gold2)', flex: 1 }}>{t.asset}</span>
+      <span style={{ color: t.type === 'Buy' ? 'var(--green)' : 'var(--red)' }}>{t.type === 'Buy' ? 'Compra' : 'Venta'}</span>
+      <span style={{ color: tone(net), minWidth: 70, textAlign: 'right', fontWeight: 600 }}>{signedMoney(net)}</span>
+    </div>
+  );
+}
+
 type Step = 'upload' | 'preview' | 'importing' | 'done';
 
 export default function ImportTradesModal({ onClose, initialFile }: { onClose: () => void; initialFile?: File }) {
-  const { accounts, scopeAccount, addAccount, importTrades, updateSettings, settings } = useApp();
+  const { accounts, allTrades, scopeAccount, addAccount, importTrades, updateSettings, settings } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>('upload');
   const [error, setError] = useState('');
@@ -31,6 +45,7 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
   const [maxDaily, setMaxDaily] = useState('');
   const [strategy, setStrategy] = useState('Importado MT5');
   const [result, setResult] = useState({ imported: 0, skipped: 0, converted: 0 });
+  const [importedList, setImportedList] = useState<MtImportResult['trades']>([]);
 
   const estimateInitial = (r: MtImportResult) => {
     const net = r.trades.reduce((a, t) => a + t.result - t.commission - t.swap, 0);
@@ -63,13 +78,28 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
   useEffect(() => { if (initialFile) handleFile(initialFile); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const netTotal = parsed ? parsed.trades.reduce((s, t) => s + t.result - t.commission - t.swap, 0) : 0;
-  const first = parsed?.trades[0]?.date, last = parsed?.trades[parsed.trades.length - 1]?.date;
+  // What the destination account already holds, matched by broker ticket: only the rest is new.
+  const stored = new Map<string, boolean>(); // ticket -> already converted to Colombian time
+  if (destination !== '__new__') {
+    for (const t of allTrades) {
+      if (t.accountId !== destination) continue;
+      const id = t.externalId || ticketFromNotes(t.notes);
+      if (id) stored.set(String(id), !!t.serverTime);
+    }
+  }
+  const fresh = parsed ? parsed.trades.filter((t) => !stored.has(t.ticket)) : [];
+  const existing = parsed ? parsed.trades.length - fresh.length : 0;
+  const toConvert = parsed ? parsed.trades.filter((t) => stored.get(t.ticket) === false).length : 0;
+  const netTotal = fresh.reduce((s, t) => s + t.result - t.commission - t.swap, 0);
+  const fileNet = parsed ? parsed.trades.reduce((s, t) => s + t.result - t.commission - t.swap, 0) : 0;
+  const first = fresh[0]?.date, last = fresh[fresh.length - 1]?.date;
+  const nothingToDo = !!parsed && fresh.length === 0 && toConvert === 0;
 
   const [verdict, setVerdict] = useState<{ tone: 'ok' | 'warn' | 'info'; text: string } | null>(null);
 
   // Did this history pass the challenge? Judged on closed trades only: target reached without touching a loss limit.
-  const evaluate = (trades: MtImportResult['trades'], initial: number, tgt: number, totalLim: number, dailyLim: number) => {
+  const evaluate = (rows: Array<{ date: string; time?: string; result: number; commission: number; swap: number }>, initial: number, tgt: number, totalLim: number, dailyLim: number) => {
+    const trades = [...rows].sort((a, b) => tradeTimestamp(a) - tradeTimestamp(b));
     let cum = 0, floorHit = false;
     const byDay = new Map<string, number>();
     for (const t of trades) {
@@ -95,7 +125,7 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
       let accountId = destination;
       if (destination === '__new__') {
         const ending = parsed.accountInfo.endingBalance;
-        const estimated = ending !== null ? Math.round((ending - netTotal) * 100) / 100 : 0;
+        const estimated = ending !== null ? Math.round((ending - fileNet) * 100) / 100 : 0;
         accountId = await addAccount({
           name: `${parsed.accountInfo.broker} · ${parsed.accountInfo.accountNumber || 'Importada'}`,
           kind: newKind ?? 'personal',
@@ -109,13 +139,15 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
       if (!settings.strategies.includes(strategy)) await updateSettings({ strategies: [...settings.strategies, strategy] });
       const r = await importTrades(accountId, parsed.trades, strategy);
       setResult(r);
+      setImportedList(fresh);
       if (destination === '__new__' && newKind === 'prop') {
         const ending = parsed.accountInfo.endingBalance;
-        const initial = ending !== null ? Math.round((ending - netTotal) * 100) / 100 : 0;
+        const initial = ending !== null ? Math.round((ending - fileNet) * 100) / 100 : 0;
         setVerdict(evaluate(parsed.trades, initial, parseFloat(target) || 0, parseFloat(maxLoss) || 0, parseFloat(maxDaily) || 0));
       } else {
         const acc = accounts.find((a) => a.id === accountId);
-        if (acc?.kind === 'prop' && acc.prop) setVerdict(evaluate(parsed.trades, acc.initialBalance, acc.prop.profitTarget, acc.prop.maxTotalLoss, acc.prop.maxDailyLoss));
+        const history = allTrades.filter((t) => t.accountId === accountId).map((t) => ({ date: t.date, time: t.time, result: t.result, commission: t.commission + (t.otherCosts ?? 0), swap: t.swap ?? 0 }));
+        if (acc?.kind === 'prop' && acc.prop) setVerdict(evaluate([...history, ...fresh], acc.initialBalance, acc.prop.profitTarget, acc.prop.maxTotalLoss, acc.prop.maxDailyLoss));
       }
       setStep('done');
       toast.success(r.imported > 0 || r.converted > 0 ? `${r.imported} trades importados` : 'No había trades nuevos que importar');
@@ -154,10 +186,27 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
             <div><span style={{ color: 'var(--txt3)' }}>Cuenta: </span><span style={{ fontFamily: 'var(--mono)' }}>{parsed.accountInfo.accountNumber || '—'}</span></div>
             <div><span style={{ color: 'var(--txt3)' }}>Broker: </span>{parsed.accountInfo.broker}</div>
             <div><span style={{ color: 'var(--txt3)' }}>Moneda: </span>{parsed.accountInfo.currency}</div>
-            <div><span style={{ color: 'var(--txt3)' }}>Trades: </span><strong>{parsed.trades.length}</strong></div>
-            <div><span style={{ color: 'var(--txt3)' }}>Periodo: </span>{first} → {last}</div>
-            <div><span style={{ color: 'var(--txt3)' }}>P&L neto: </span><span style={{ color: tone(netTotal), fontWeight: 700 }}>{signedMoney(netTotal)}</span></div>
+            <div><span style={{ color: 'var(--txt3)' }}>Trades en el archivo: </span><strong>{parsed.trades.length}</strong></div>
+            <div><span style={{ color: 'var(--txt3)' }}>Nuevos: </span><strong style={{ color: 'var(--green)' }}>{fresh.length}</strong></div>
+            <div><span style={{ color: 'var(--txt3)' }}>Ya registrados: </span><strong style={{ color: 'var(--gold2)' }}>{existing}</strong>{existing > 0 && <span style={{ color: 'var(--txt3)' }}> (se omiten)</span>}</div>
+            <div><span style={{ color: 'var(--txt3)' }}>Periodo de los nuevos: </span>{fresh.length ? `${first} → ${last}` : '—'}</div>
+            <div><span style={{ color: 'var(--txt3)' }}>P&L neto de los nuevos: </span><span style={{ color: tone(netTotal), fontWeight: 700 }}>{fresh.length ? signedMoney(netTotal) : '—'}</span></div>
           </div>
+
+          {fresh.length > 0 && existing > 0 && (
+            <div style={{ border: '1px solid var(--border)', borderRadius: 10, maxHeight: 170, overflowY: 'auto' }}>
+              <div style={{ padding: '8px 12px', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--txt3)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, background: 'var(--bg2)' }}>Trades nuevos</div>
+              {fresh.map((t) => <NewTradeRow key={t.ticket} t={t} />)}
+            </div>
+          )}
+          {nothingToDo && (
+            <div role="status" style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--border2)', color: 'var(--txt2)', fontSize: 12 }}>
+              No hay trades nuevos: todo lo del archivo ya está registrado en esta cuenta.
+            </div>
+          )}
+          {toConvert > 0 && (
+            <p style={{ fontSize: 11, color: 'var(--txt3)' }}>{toConvert} trades ya registrados se actualizarán a hora de Colombia (sin duplicarlos).</p>
+          )}
 
           <Field label="Importar hacia">
             <select value={destination} onChange={(e) => setDestination(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
@@ -198,7 +247,7 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
           {errorBox}
           <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
             <Button onClick={() => setStep('upload')} style={{ flex: 1 }}>Atrás</Button>
-            <Button variant="primary" onClick={handleImport} disabled={destination === '__new__' && !newKind} style={{ flex: 2 }}>Importar {parsed.trades.length} trades</Button>
+            <Button variant="primary" onClick={handleImport} disabled={nothingToDo || (destination === '__new__' && !newKind)} style={{ flex: 2 }}>{fresh.length > 0 ? `Importar ${fresh.length} trades nuevos` : toConvert > 0 ? `Actualizar horas de ${toConvert} trades` : 'Nada nuevo que importar'}</Button>
           </div>
         </div>
       )}
@@ -217,6 +266,11 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
           </div>
           <span style={{ fontSize: 14, fontWeight: 600 }}>{result.imported} trades importados</span>
           {result.converted > 0 && <span style={{ fontSize: 12, color: 'var(--txt2)' }}>{result.converted} trades ya importados se actualizaron a hora de Colombia.</span>}
+          {importedList.length > 0 && (
+            <div style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 10, maxHeight: 170, overflowY: 'auto' }}>
+              {importedList.map((t) => <NewTradeRow key={t.ticket} t={t} />)}
+            </div>
+          )}
           {verdict && (
             <div role="status" style={{
               width: '100%', padding: '12px 16px', borderRadius: 10, fontSize: 13, lineHeight: 1.5, textAlign: 'center',
