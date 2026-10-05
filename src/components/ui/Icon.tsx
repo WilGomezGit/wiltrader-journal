@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 const s = { stroke: 'currentColor', fill: 'none', strokeWidth: '1.8', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 
 const icons: Record<string, ReactNode> = {
+  chevron: <polyline points="9 6 15 12 9 18" {...s}/>,
   dashboard: <><rect x="3" y="3" width="7" height="7" rx="1" {...s}/><rect x="14" y="3" width="7" height="7" rx="1" {...s}/><rect x="3" y="14" width="7" height="7" rx="1" {...s}/><rect x="14" y="14" width="7" height="7" rx="1" {...s}/></>,
   journal:   <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" {...s}/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" {...s}/></>,
   analytics: <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" {...s}/>,

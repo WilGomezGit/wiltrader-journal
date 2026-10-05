@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
+import WeeklySummary from '@/components/views/WeeklySummary';
 import JournalTable from '@/components/trade/JournalTable';
 import TradeForm from '@/components/trade/TradeForm';
 import ImportTradesModal from '@/components/trade/ImportTradesModal';
@@ -64,6 +65,8 @@ export default function JournalView({ trades, strategies, assets, onAdd, onEdit,
   return (
     <div style={{ display: 'flex', gap: 'var(--sp-5)', height: '100%' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)', minWidth: 0, minHeight: 0, overflowY: 'auto', paddingRight: 'var(--sp-2)' }}>
+        <WeeklySummary trades={trades} />
+
         <div style={{ display: 'flex', gap: 'var(--sp-3)', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
             <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
