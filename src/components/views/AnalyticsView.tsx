@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import BarChart from '@/components/charts/BarChart';
 import CumulativeChart, { type ChartPoint } from '@/components/charts/CumulativeChart';
 import { Card, PageHeader } from '@/components/ui/kit';
+import TradeRecord from '@/components/ui/TradeRecord';
 import { computeStats, netPnl, type Stats } from '@/lib/analytics';
 import { money, pct, profitFactor, shortDate, signedMoney, tone } from '@/lib/format';
 import type { Trade } from '@/types';
@@ -68,6 +69,7 @@ export default function AnalyticsView({ trades, stats, strategies, assets }: Ana
     <div style={{ height: '100%', overflowY: 'auto', paddingRight: 'var(--sp-2)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)', paddingBottom: 'var(--sp-5)' }}>
         <PageHeader title="Analítica" subtitle="Cómo rinde cada estrategia, hora y activo (P&L neto)" />
+        <TradeRecord stats={stats} />
         <Card title="Curva de equity" subtitle="P&L neto acumulado · dorado en ganancia, rojo en pérdida" style={{ flexShrink: 0 }}
           actions={
             <div className="seg" role="group" aria-label="Agrupar curva" style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
