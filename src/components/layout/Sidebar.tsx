@@ -42,13 +42,13 @@ export default function Sidebar({ onSignOut, traderName = 'WilTrader', strategyT
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <div style={{
-          width: 100, height: 100, borderRadius: 22,
+          width: '100%', maxWidth: 172, aspectRatio: '425 / 306', borderRadius: 18,
           overflow: 'hidden',
           border: '1px solid rgba(201,162,39,0.35)',
           boxShadow: '0 6px 28px rgba(0,0,0,0.45), 0 0 0 3px rgba(201,162,39,0.08)',
           background: '#0d1018',
         }}>
-          <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
         </div>
       </div>
 
