@@ -1,10 +1,24 @@
 'use client';
+import { useMemo, useState } from 'react';
 import { Card, Stat } from '@/components/ui/kit';
 import { money, pct, profitFactor, signedMoney, tone } from '@/lib/format';
-import type { Stats } from '@/lib/analytics';
+import { computeStats } from '@/lib/analytics';
+import type { Trade } from '@/types';
+
+const ALL = '__all__';
 
 /** Big, easy-to-read record of the journal: total trades, wins, losses and the stats derived from them. */
-export default function TradeRecord({ stats }: { stats: Stats }) {
+export default function TradeRecord({ trades }: { trades: Trade[] }) {
+  // One record per asset so different instruments are never mixed; "Todos" is optional.
+  const assets = useMemo(() => {
+    const count = new Map<string, number>();
+    for (const t of trades) count.set(t.asset, (count.get(t.asset) ?? 0) + 1);
+    return [...count.entries()].sort((a, b) => b[1] - a[1]).map(([a]) => a);
+  }, [trades]);
+  const [picked, setPicked] = useState<string>('');
+  const asset = picked === ALL || assets.includes(picked) ? picked : (assets[0] ?? ALL);
+  const scoped = useMemo(() => (asset === ALL ? trades : trades.filter((t) => t.asset === asset)), [trades, asset]);
+  const stats = useMemo(() => computeStats(scoped), [scoped]);
   const total = stats.totalTrades;
   const has = total > 0;
   // Bar widths use all trades so break-even trades are visible too.
@@ -20,7 +34,17 @@ export default function TradeRecord({ stats }: { stats: Stats }) {
   const streak = stats.currentStreak;
 
   return (
-    <Card title="Récord de operaciones" subtitle={has ? `${total} trades, ${stats.losses} perdidos y ${stats.wins} ganados` : 'Registra operaciones para ver tus estadísticas'} style={{ flexShrink: 0 }}>
+    <Card title="Récord de operaciones" subtitle={has ? `${asset === ALL ? 'Todos los activos' : asset}: ${total} trades, ${stats.losses} perdidos y ${stats.wins} ganados` : 'Registra operaciones para ver tus estadísticas'} style={{ flexShrink: 0 }}
+      actions={assets.length > 1 ? (
+        <div role="group" aria-label="Activo" style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+          {[...assets, ALL].map((a) => (
+            <button key={a} type="button" onClick={() => setPicked(a)} style={{
+              padding: '7px 14px', border: 'none', fontSize: 12, cursor: 'pointer',
+              background: asset === a ? 'var(--gold-dim)' : 'transparent', color: asset === a ? 'var(--gold)' : 'var(--txt3)',
+            }}>{a === ALL ? 'Todos' : a}</button>
+          ))}
+        </div>
+      ) : undefined}>
       <div style={{ display: 'flex', gap: 'var(--sp-3)', flexWrap: 'wrap' }}>
         {big.map((b) => (
           <div key={b.label} style={{ flex: '1 1 110px', background: 'var(--bg4)', borderRadius: 10, padding: 'var(--sp-4)', textAlign: 'center' }}>

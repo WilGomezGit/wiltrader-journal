@@ -69,7 +69,7 @@ export default function DashboardView({ trades, stats, balance, initialBalance, 
             sub2={`Máximo: ${pct(stats.maxDrawdown.pct, 2)} (${money(stats.maxDrawdown.amount)})`} />
         </div>
 
-        <TradeRecord stats={stats} />
+        <TradeRecord trades={trades} />
 
         {prop && (
           <Card title={`Fondeo · ${prop.account.name}`} subtitle="Se calcula solo con las operaciones de esta cuenta">
