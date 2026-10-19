@@ -7,6 +7,7 @@ import JournalTable from '@/components/trade/JournalTable';
 import TradeForm from '@/components/trade/TradeForm';
 import ImportTradesModal from '@/components/trade/ImportTradesModal';
 import WeeklyPerformanceCard from '@/components/views/WeeklyPerformanceCard';
+import TradeRecord from '@/components/ui/TradeRecord';
 import PropProgress from '@/components/ui/PropProgress';
 import Icon from '@/components/ui/Icon';
 import { Button, Card, PageHeader } from '@/components/ui/kit';
@@ -67,6 +68,8 @@ export default function DashboardView({ trades, stats, balance, initialBalance, 
           <MetricCard label="Drawdown actual" value={has ? pct(stats.currentDrawdown.pct, 2) : '—'} valueColor={has && stats.currentDrawdown.pct > 0 ? 'var(--red)' : undefined} delay={180} spark={ddSpark} sparkColor="var(--red)"
             sub2={`Máximo: ${pct(stats.maxDrawdown.pct, 2)} (${money(stats.maxDrawdown.amount)})`} />
         </div>
+
+        <TradeRecord trades={trades} />
 
         {prop && (
           <Card title={`Fondeo · ${prop.account.name}`} subtitle="Se calcula solo con las operaciones de esta cuenta">
