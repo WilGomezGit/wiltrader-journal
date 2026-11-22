@@ -35,12 +35,12 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
           date: editTrade.date, time: editTrade.time || '', asset: editTrade.asset, type: editTrade.type, strategy: editTrade.strategy,
           entry: str(editTrade.entry), sl: str(editTrade.sl), tp: str(editTrade.tp), lotSize: str(editTrade.lotSize),
           result: String(editTrade.result), commission: str(editTrade.commission), swap: str(editTrade.swap), otherCosts: str(editTrade.otherCosts),
-          riskAmount: str(editTrade.riskAmount), cop: String(editTrade.cop), emotion: editTrade.emotion || '', notes: editTrade.notes,
+          riskAmount: str(editTrade.riskAmount), followedPlan: editTrade.followedPlan === undefined ? '' : editTrade.followedPlan ? 'yes' : 'no', cop: String(editTrade.cop), emotion: editTrade.emotion || '', notes: editTrade.notes,
         }
       : {
           accountId: defaultAccount,
           date: fromISODate(todayISO()), time: nowTime(), asset: assets[0] || 'XAUUSD', type: 'Buy', strategy: strategies[0] || '',
-          entry: '', sl: '', tp: '', lotSize: '', result: '', commission: '', swap: '', otherCosts: '', riskAmount: '',
+          entry: '', sl: '', tp: '', lotSize: '', result: '', commission: '', swap: '', otherCosts: '', riskAmount: '', followedPlan: '',
           cop: '', emotion: emotions[0] || '', notes: '',
         }
   );
@@ -146,6 +146,16 @@ export default function TradeForm({ onSave, onCancel, editTrade, strategies, ass
             <Field label="Riesgo ($)" hint="Para calcular el múltiplo R"><input type="number" step="0.01" value={form.riskAmount} onChange={set('riskAmount')} style={inputStyle} /></Field>
             <Field label="COP" hint={`Neto × ${copRate.toLocaleString('es-CO')}`}><input type="number" value={form.cop} onChange={set('cop')} style={inputStyle} /></Field>
           </div>
+          <Field label="¿Seguiste tu plan?" hint="Alimenta el informe de disciplina">
+            <div className="seg" style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border2)' }}>
+              {([['yes', 'Sí', 'var(--green)'], ['no', 'No', 'var(--red)'], ['', 'Sin marcar', 'var(--gold)']] as const).map(([v, label, c]) => (
+                <button key={v} type="button" onClick={() => setForm((f) => ({ ...f, followedPlan: v }))} style={{
+                  flex: 1, padding: '9px', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  background: (form.followedPlan ?? '') === v ? 'var(--bg4)' : 'transparent', color: (form.followedPlan ?? '') === v ? c : 'var(--txt3)',
+                }}>{label}</button>
+              ))}
+            </div>
+          </Field>
           <Field label="Estado emocional">
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-2)' }}>
               {emotions.map((e) => (

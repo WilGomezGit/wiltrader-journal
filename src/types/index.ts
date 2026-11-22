@@ -71,6 +71,10 @@ export interface Trade {
   riskAmount?: number;
   /** Broker ticket/position id, used to avoid importing the same trade twice. */
   externalId?: string;
+  /** Minutes the position stayed open (imported trades). */
+  durationMin?: number;
+  /** Whether the trade followed the trader's plan; unset = not recorded. */
+  followedPlan?: boolean;
   cop: number;
   emotion?: string;
   notes: string;
@@ -97,6 +101,8 @@ export interface TradeFormData {
   swap: string;
   otherCosts: string;
   riskAmount: string;
+  /** '' = not recorded. */
+  followedPlan?: '' | 'yes' | 'no';
   cop: string;
   emotion: string;
   notes: string;

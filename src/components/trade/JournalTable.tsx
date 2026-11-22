@@ -35,7 +35,7 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
   }
 
   const headers = ['Fecha', 'Hora', ...(accountNames ? ['Cuenta'] : []), 'Activo', 'Tipo', 'Estrategia', 'Bruto', 'Costos', 'Neto',
-    ...(showCOP ? ['COP'] : []), 'Emoción', 'Resultado', ...(!compact ? [''] : [])];
+    ...(showCOP ? ['COP'] : []), 'Emoción', 'Plan', 'Resultado', ...(!compact ? [''] : [])];
 
   return (
     <div style={{ overflowX: 'auto' }}>
@@ -68,6 +68,7 @@ export default function JournalTable({ trades, compact, onEdit, onDelete, showCO
                 <td style={{ ...td, color: tone(net), fontWeight: 600 }}>{signedMoney(net)}</td>
                 {showCOP && <td style={{ ...td, color: tone(cop), fontSize: 12 }}>{cop >= 0 ? '+' : '-'} COP {Math.abs(cop).toLocaleString('es-CO')}</td>}
                 <td style={{ ...td, fontSize: 12 }}>{t.emotion || '—'}</td>
+                <td style={{ ...td, color: t.followedPlan === undefined ? 'var(--txt3)' : t.followedPlan ? 'var(--green)' : 'var(--red)' }}>{t.followedPlan === undefined ? '—' : t.followedPlan ? 'Sí' : 'No'}</td>
                 <td style={td}><span style={{ padding: '4px 10px', borderRadius: 4, fontSize: 11, background: o.bg, color: o.color }}>{o.label}</span></td>
                 {!compact && (
                   <td style={{ ...td, position: 'sticky', right: 0, background: 'var(--bg2)', boxShadow: '-8px 0 8px -8px rgba(0,0,0,0.6)' }}>

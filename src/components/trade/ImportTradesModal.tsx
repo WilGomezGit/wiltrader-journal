@@ -84,7 +84,7 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
     for (const t of allTrades) {
       if (t.accountId !== destination) continue;
       const id = t.externalId || ticketFromNotes(t.notes);
-      if (id) stored.set(String(id), !!t.serverTime);
+      if (id) stored.set(String(id), !!t.serverTime && t.durationMin !== undefined);
     }
   }
   const fresh = parsed ? parsed.trades.filter((t) => !stored.has(t.ticket)) : [];
@@ -205,7 +205,7 @@ export default function ImportTradesModal({ onClose, initialFile }: { onClose: (
             </div>
           )}
           {toConvert > 0 && (
-            <p style={{ fontSize: 11, color: 'var(--txt3)' }}>{toConvert} trades ya registrados se actualizarán a hora de Colombia (sin duplicarlos).</p>
+            <p style={{ fontSize: 11, color: 'var(--txt3)' }}>{toConvert} trades ya registrados se completarán (hora de Colombia y duración), sin duplicarlos.</p>
           )}
 
           <Field label="Importar hacia">
