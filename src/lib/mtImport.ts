@@ -9,6 +9,8 @@ export interface ImportedTrade {
   /** Original broker-server close date/time, kept untouched. */
   serverDate: string;
   serverTime: string;
+  /** Minutes between open and close (same clock, so the time zone does not matter). */
+  durationMin: number;
   asset: string;
   type: 'Buy' | 'Sell';
   entry: number;
@@ -152,6 +154,7 @@ export async function parseMtReport(file: File): Promise<MtImportResult> {
       time: local.time,
       serverDate: fromISODate(serverIso),
       serverTime,
+      durationMin: Math.max(0, Math.round((closeTime.getTime() - openTime.getTime()) / 60000)),
       asset: String(row[2] ?? '').trim(),
       type,
       entry: num(row[5]),

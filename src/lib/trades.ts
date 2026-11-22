@@ -1,6 +1,6 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, writeBatch,
-  query, where, onSnapshot, getDocs, type DocumentReference,
+  query, where, onSnapshot, getDocs, deleteField, type DocumentReference,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Trade, TradeFormData } from '@/types';
@@ -46,6 +46,7 @@ export async function addTrade(userId: string, data: TradeFormData): Promise<str
     swap: num(data.swap),
     otherCosts: num(data.otherCosts),
     riskAmount: num(data.riskAmount),
+    ...(data.followedPlan ? { followedPlan: data.followedPlan === 'yes' } : {}),
     cop: num(data.cop),
     emotion: data.emotion || '',
     notes: data.notes,
@@ -61,6 +62,7 @@ export async function updateTrade(tradeId: string, data: Partial<TradeFormData>)
   const numeric: (keyof TradeFormData)[] = ['entry', 'sl', 'tp', 'lotSize', 'result', 'commission', 'swap', 'otherCosts', 'riskAmount', 'cop'];
   for (const k of text) if (data[k] !== undefined) updates[k] = data[k];
   for (const k of numeric) if (data[k] !== undefined) updates[k] = num(data[k] as string);
+  if (data.followedPlan !== undefined) updates.followedPlan = data.followedPlan ? data.followedPlan === 'yes' : deleteField();
   await updateDoc(doc(db, TRADES_COLLECTION, tradeId), updates);
 }
 
@@ -98,7 +100,7 @@ export async function bulkImportTrades(
     const data = d.data();
     const id = data.externalId || ticketFromNotes(data.notes);
     if (id) seen.add(String(id));
-    if (id && !data.serverTime) unconverted.set(String(id), d.ref);
+    if (id && (!data.serverTime || data.durationMin === undefined)) unconverted.set(String(id), d.ref);
   });
 
   // Re-importing the same report repairs the times of trades imported earlier in server time.
@@ -107,7 +109,7 @@ export async function bulkImportTrades(
     const batch = writeBatch(db);
     for (const t of repairs.slice(i, i + BATCH_LIMIT)) {
       batch.update(unconverted.get(t.ticket) as DocumentReference, {
-        externalId: t.ticket, date: t.date, time: t.time, serverDate: t.serverDate, serverTime: t.serverTime, updatedAt: Date.now(),
+        externalId: t.ticket, date: t.date, time: t.time, serverDate: t.serverDate, serverTime: t.serverTime, durationMin: t.durationMin, updatedAt: Date.now(),
       });
     }
     await batch.commit();
@@ -130,6 +132,7 @@ export async function bulkImportTrades(
         time: t.time,
         serverDate: t.serverDate,
         serverTime: t.serverTime,
+        durationMin: t.durationMin,
         asset: t.asset,
         type: t.type,
         strategy: opts.strategy,

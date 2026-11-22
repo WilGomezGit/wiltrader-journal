@@ -14,6 +14,7 @@ const nav = [
   { href: '/journal',   icon: 'journal'   as const, label: 'Diario'     },
   { href: '/accounts',  icon: 'trophy'    as const, label: 'Cuentas'    },
   { href: '/analytics', icon: 'analytics' as const, label: 'Analítica'  },
+  { href: '/informes',  icon: 'layers'    as const, label: 'Informes'   },
   { href: '/strategy',  icon: 'strategy'  as const, label: 'Estrategia' },
   { href: '/settings',  icon: 'settings'  as const, label: 'Ajustes'    },
 ];
