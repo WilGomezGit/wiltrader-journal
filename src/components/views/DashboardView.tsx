@@ -11,9 +11,10 @@ import TradeRecord from '@/components/ui/TradeRecord';
 import PropProgress from '@/components/ui/PropProgress';
 import Icon from '@/components/ui/Icon';
 import { Button, Card, PageHeader } from '@/components/ui/kit';
-import { money, pct, profitFactor, signedMoney, tone } from '@/lib/format';
+import { money, pct, profitFactor, shortDate, signedMoney, tone } from '@/lib/format';
+import { cashflowTotals } from '@/lib/analytics';
 import type { PropStatus, Stats } from '@/lib/analytics';
-import type { Account, Trade, TradeFormData, TrmData } from '@/types';
+import type { Account, Cashflow, Trade, TradeFormData, TrmData } from '@/types';
 
 interface DashboardViewProps {
   trades: Trade[];
@@ -31,12 +32,16 @@ interface DashboardViewProps {
   showCOP: boolean;
   copRate?: number;
   trmData?: TrmData;
+  /** Deposits and withdrawals of the accounts in scope. */
+  cashflows?: Cashflow[];
+  accountNames?: Map<string, string>;
 }
 
-export default function DashboardView({ trades, stats, balance, initialBalance, scopeLabel, prop, strategies, assets, onAddTrade, showCOP, copRate = 4200, trmData }: DashboardViewProps) {
+export default function DashboardView({ trades, stats, balance, initialBalance, scopeLabel, prop, strategies, assets, onAddTrade, showCOP, copRate = 4200, trmData, cashflows = [], accountNames }: DashboardViewProps) {
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const has = stats.totalTrades > 0;
+  const flowTotals = cashflowTotals(cashflows);
 
   const equity = stats.equity.map((p) => p.balance);
   const equityData = equity.length > 1 ? equity : [initialBalance, initialBalance];
@@ -60,7 +65,7 @@ export default function DashboardView({ trades, stats, balance, initialBalance, 
         <div style={{ display: 'flex', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
           <MetricCard label="Balance" value={money(balance)} highlight delay={0} spark={spark} sparkColor="var(--gold)"
             sub={showCOP ? `COP ${Math.round(balance * copRate).toLocaleString('es-CO')}` : undefined}
-            sub2={has ? undefined : 'Capital inicial · aún sin operaciones'} />
+            sub2={cashflows.length ? `Depósitos ${money(flowTotals.deposits)} · retiros ${money(flowTotals.withdrawals)}` : has ? undefined : 'Capital inicial · aún sin operaciones'} />
           <MetricCard label="P&L neto" value={signedMoney(stats.pnl)} valueColor={tone(stats.pnl)} delay={60} spark={plSpark} sparkColor={tone(stats.pnl)}
             sub2={`Bruto ${signedMoney(stats.pnlGross)} · costos ${money(stats.commissions + stats.swaps + stats.otherCosts)}`} />
           <MetricCard label="Tasa de victorias" value={has ? pct(stats.winRate) : '—'} delay={120}
@@ -70,6 +75,21 @@ export default function DashboardView({ trades, stats, balance, initialBalance, 
         </div>
 
         <TradeRecord trades={trades} />
+
+        {cashflows.length > 0 && (
+          <Card title="Depósitos y retiros" subtitle="No cuentan como ganancia ni pérdida: el balance los refleja, las estadísticas no" style={{ flexShrink: 0 }}>
+            {[...cashflows].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map((c) => (
+              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--sp-3)', padding: '9px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+                <span style={{ color: 'var(--txt2)' }}>
+                  {shortDate(c.date)} · {c.type === 'deposit' ? 'Depósito' : 'Retiro'}
+                  {accountNames && accountNames.size > 1 ? ` · ${accountNames.get(c.accountId) ?? ''}` : ''}
+                  {c.note ? <span style={{ color: 'var(--txt3)' }}> · {c.note}</span> : null}
+                </span>
+                <span style={{ fontFamily: 'var(--mono)', fontWeight: 600, color: c.type === 'deposit' ? 'var(--green)' : 'var(--red)' }}>{c.type === 'deposit' ? '+' : '-'}{money(c.amount)}</span>
+              </div>
+            ))}
+          </Card>
+        )}
 
         {prop && (
           <Card title={`Fondeo · ${prop.account.name}`} subtitle="Se calcula solo con las operaciones de esta cuenta">
@@ -84,7 +104,7 @@ export default function DashboardView({ trades, stats, balance, initialBalance, 
           <JournalTable trades={trades} compact showCOP={showCOP} copRate={copRate} />
         </Card>
 
-        <Card title="Curva de equity" subtitle="Balance de trading: capital inicial + P&L neto acumulado" style={{ flexShrink: 0 }}>
+        <Card title="Curva de equity" subtitle="Capital inicial + P&L neto acumulado (sin depósitos ni retiros)" style={{ flexShrink: 0 }}>
           {has ? <EquityChart data={equityData} /> : (
             <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--txt3)', fontSize: 13 }}>Registra tu primera operación para ver la curva</div>
           )}

@@ -340,6 +340,53 @@ export function computePropStatus(account: Account, trades: Trade[], todayIso: s
   };
 }
 
+/**
+ * Percent measures that stay honest when money goes in or out of the account.
+ * Deposits and withdrawals are not results: P&L, win rate, profit factor, expectancy and the dollar
+ * drawdown ignore them. The percentages chain each trade's return on the balance it was actually
+ * traded with (a cash flow dated D counts from the start of D), so withdrawing money never shows up
+ * as a loss and a loss after a withdrawal weighs what it really weighed.
+ */
+export function capitalAdjusted(trades: Trade[], cashflows: Cashflow[], initialBalance: number, basis: Basis = 'net') {
+  type Ev = { ts: number; flow?: number; pnl?: number };
+  const events: Ev[] = [
+    ...cashflows.map((c) => {
+      const iso = toISODate(c.date);
+      return { ts: new Date(`${iso}T00:00:00`).getTime() - 1, flow: c.type === 'deposit' ? c.amount : -c.amount };
+    }),
+    ...trades.map((t) => ({ ts: tradeTimestamp(t), pnl: pnlOf(t, basis) })),
+  ].sort((a, b) => a.ts - b.ts);
+
+  let balance = initialBalance, index = 1, peak = 1, maxDD = 0;
+  for (const e of events) {
+    if (e.flow !== undefined) { balance += e.flow; continue; }
+    const p = e.pnl ?? 0;
+    if (balance > 0) index *= Math.max(1 + p / balance, 0);
+    balance += p;
+    peak = Math.max(peak, index);
+    maxDD = Math.max(maxDD, (peak - index) / peak);
+  }
+  return {
+    roi: (index - 1) * 100,
+    maxDrawdownPct: maxDD * 100,
+    currentDrawdownPct: ((peak - index) / peak) * 100,
+    recoveryNeededPct: index > 0 && index < peak ? (peak / index - 1) * 100 : 0,
+  };
+}
+
+/** Replaces the percent measures of `stats` with their capital-aware version when the account had cash flows. */
+function withCapital(stats: Stats, trades: Trade[], cashflows: Cashflow[], initial: number, basis: Basis): Stats {
+  if (cashflows.length === 0 || !(initial > 0) || trades.length === 0) return stats;
+  const a = capitalAdjusted(trades, cashflows, initial, basis);
+  return {
+    ...stats,
+    roi: a.roi,
+    maxDrawdown: { ...stats.maxDrawdown, pct: a.maxDrawdownPct },
+    currentDrawdown: { ...stats.currentDrawdown, pct: a.currentDrawdownPct },
+    recoveryNeededPct: a.recoveryNeededPct,
+  };
+}
+
 export interface AccountSummary {
   account: Account;
   stats: Stats;
@@ -354,8 +401,9 @@ export interface AccountSummary {
 
 export function summarizeAccount(account: Account, allTrades: Trade[], allCashflows: Cashflow[], todayIso: string, basis: Basis = 'net'): AccountSummary {
   const trades = allTrades.filter((t) => t.accountId === account.id);
-  const { deposits, withdrawals } = cashflowTotals(allCashflows.filter((c) => c.accountId === account.id));
-  const stats = computeStats(trades, { initialBalance: account.initialBalance, basis });
+  const flows = allCashflows.filter((c) => c.accountId === account.id);
+  const { deposits, withdrawals } = cashflowTotals(flows);
+  const stats = withCapital(computeStats(trades, { initialBalance: account.initialBalance, basis }), trades, flows, account.initialBalance, basis);
   const netCapital = account.initialBalance + deposits - withdrawals;
   return {
     account, stats, deposits, withdrawals, netCapital,
@@ -376,7 +424,8 @@ export function consolidate(accounts: Account[], trades: Trade[], cashflows: Cas
   const summaries = accounts.map((a) => summarizeAccount(a, trades, cashflows, todayIso, basis));
   const ids = new Set(accounts.map((a) => a.id));
   const initial = accounts.reduce((s, a) => s + a.initialBalance, 0);
-  const stats = computeStats(trades.filter((t) => ids.has(t.accountId)), { initialBalance: initial, basis });
+  const scopeTrades = trades.filter((t) => ids.has(t.accountId));
+  const stats = withCapital(computeStats(scopeTrades, { initialBalance: initial, basis }), scopeTrades, cashflows.filter((c) => ids.has(c.accountId)), initial, basis);
   return {
     stats,
     accounts: summaries,
