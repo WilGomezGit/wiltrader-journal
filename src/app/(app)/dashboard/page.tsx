@@ -7,7 +7,7 @@ import DashboardView from '@/components/views/DashboardView';
 import { Card, PageHeader } from '@/components/ui/kit';
 
 export default function DashboardPage() {
-  const { addAccount, accounts, accountsLoading, trades, stats, scopeBalance, scopeInitialBalance, scopeLabel, scopeAccount, summaries, settings, addTrade, editTrade, showCOP, copRate, trmData } = useApp();
+  const { addAccount, accounts, accountsLoading, trades, stats, scopeBalance, scopeInitialBalance, scopeLabel, scopeAccount, summaries, settings, cashflows, scopeAccounts, addTrade, editTrade, showCOP, copRate, trmData } = useApp();
   const [modal, setModal] = useState<'account' | 'import' | null>(null);
   const [file, setFile] = useState<File | undefined>();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -49,6 +49,8 @@ export default function DashboardPage() {
         prop={scopeAccount && propStatus ? { account: scopeAccount, status: propStatus } : null}
         strategies={settings.strategies}
         assets={settings.assets}
+        cashflows={cashflows.filter((c) => scopeAccounts.some((a) => a.id === c.accountId))}
+        accountNames={new Map(scopeAccounts.map((a) => [a.id, a.name]))}
         onAddTrade={addTrade}
         onEditTrade={editTrade}
         showCOP={showCOP}

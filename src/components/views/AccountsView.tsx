@@ -4,7 +4,7 @@ import Icon from '@/components/ui/Icon';
 import { Badge, Button, Card, Field, Modal, PageHeader, Stat, inputStyle } from '@/components/ui/kit';
 import AccountForm, { phaseLabel } from '@/components/views/AccountForm';
 import PropProgress from '@/components/ui/PropProgress';
-import { money, pct, profitFactor, signedMoney, tone } from '@/lib/format';
+import { money, pct, profitFactor, shortDate, signedMoney, tone } from '@/lib/format';
 import { todayISO } from '@/lib/dates';
 import type { AccountSummary, ConsolidatedSummary } from '@/lib/analytics';
 import type { Account, Cashflow } from '@/types';
@@ -26,19 +26,22 @@ interface AccountsViewProps {
 
 const grid = (min: number): React.CSSProperties => ({ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 'var(--sp-5)' });
 
-function CashflowModal({ account, type, onSave, onClose }: {
-  account: Account; type: Cashflow['type']; onSave: (amount: number, date: string, note: string) => Promise<void>; onClose: () => void;
+function CashflowModal({ account, type, balance, onSave, onClose }: {
+  account: Account; type: Cashflow['type']; balance: number; onSave: (amount: number, date: string, note: string) => Promise<void>; onClose: () => void;
 }) {
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(todayISO());
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
-  const valid = parseFloat(amount) > 0;
+  const value = parseFloat(amount);
+  const overdrawn = type === 'withdrawal' && value > balance + 0.005;
+  const valid = value > 0 && !overdrawn && !!date;
   return (
     <Modal title={`${type === 'deposit' ? 'Registrar depósito' : 'Registrar retiro'} · ${account.name}`} onClose={onClose} width={420}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>
-        <Field label={`Monto (${account.baseCurrency})`}><input style={inputStyle} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus /></Field>
-        <Field label="Fecha"><input style={inputStyle} type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+        <Field label={`Monto (${account.baseCurrency})`} hint={type === 'withdrawal' ? `Balance actual: ${money(balance)}${value > 0 && !overdrawn ? ` · quedaría en ${money(balance - value)}` : ''}` : value > 0 ? `Quedaría en ${money(balance + value)}` : `Balance actual: ${money(balance)}`}><input style={{ ...inputStyle, borderColor: overdrawn ? 'var(--red)' : undefined }} type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus /></Field>
+        {overdrawn && <div role="alert" style={{ fontSize: 12, color: 'var(--red)' }}>El retiro supera el balance disponible de la cuenta ({money(balance)}).</div>}
+        <Field label="Fecha"><input style={inputStyle} type="date" max={todayISO()} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
         <Field label="Nota (opcional)"><input style={inputStyle} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
         <div style={{ display: 'flex', gap: 'var(--sp-3)', justifyContent: 'flex-end' }}>
           <Button onClick={onClose}>Cancelar</Button>
@@ -93,23 +96,23 @@ function AccountCard({ s, cashflows, isView, onView, onEdit, onToggle, onDelete,
         </div>
       )}
 
-      {a.kind === 'personal' && (
+      {(
         <div style={{ marginTop: 'var(--sp-5)', paddingTop: 'var(--sp-5)', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>
           <div style={grid(130)}>
-            <Stat label="Capital neto" value={money(s.netCapital)} sub="inicial + depósitos − retiros" />
-            <Stat label="Depósitos" value={money(s.deposits)} />
-            <Stat label="Retiros" value={money(s.withdrawals)} />
-            <Stat label="ROI" value={stats.roi === null ? '—' : pct(stats.roi, 2)} color={stats.roi === null ? undefined : tone(stats.roi)} sub="sobre balance inicial" />
+            <Stat label="Capital neto" value={money(s.netCapital)} sub="inicial + depósitos − retiros (sin ganancias)" />
+            <Stat label="Depósitos" value={money(s.deposits)} color={s.deposits > 0 ? 'var(--green)' : undefined} />
+            <Stat label="Retiros" value={money(s.withdrawals)} color={s.withdrawals > 0 ? 'var(--red)' : undefined} />
+            <Stat label="ROI" value={stats.roi === null ? '—' : pct(stats.roi, 2)} color={stats.roi === null ? undefined : tone(stats.roi)} sub={cashflows.length ? 'ajustado por depósitos y retiros' : 'sobre balance inicial'} />
           </div>
           <div style={{ display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap' }}>
             <Button variant="gold" onClick={() => onCashflow('deposit')}><Icon name="plus" size={12} /> Depósito</Button>
-            <Button onClick={() => onCashflow('withdrawal')}>Retiro</Button>
+            <Button onClick={() => onCashflow('withdrawal')}>{a.kind === 'prop' ? 'Retiro (payout)' : 'Retiro'}</Button>
           </div>
           {cashflows.length > 0 && (
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
-              {cashflows.slice(-5).reverse().map((c) => (
+              {cashflows.slice(-8).reverse().map((c) => (
                 <li key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--txt2)', padding: '8px 12px', background: 'var(--bg3)', borderRadius: 8 }}>
-                  <span>{c.date} · {c.type === 'deposit' ? 'Depósito' : 'Retiro'}{c.note ? ` · ${c.note}` : ''}</span>
+                  <span>{shortDate(c.date)} · {c.type === 'deposit' ? 'Depósito' : 'Retiro'}{c.note ? ` · ${c.note}` : ''}</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
                     <span style={{ fontFamily: 'var(--mono)', color: c.type === 'deposit' ? 'var(--green)' : 'var(--red)' }}>{c.type === 'deposit' ? '+' : '-'}{money(c.amount)}</span>
                     <button type="button" onClick={() => onRemoveCashflow(c.id)} aria-label="Eliminar movimiento" style={{ background: 'none', border: 'none', color: 'var(--txt3)', cursor: 'pointer', display: 'flex' }}><Icon name="close" size={12} /></button>
@@ -197,7 +200,7 @@ export default function AccountsView({ summaries, consolidated, cashflows, viewA
       )}
 
       {cashflow && (
-        <CashflowModal account={cashflow.account} type={cashflow.type} onClose={() => setCashflow(null)}
+        <CashflowModal account={cashflow.account} type={cashflow.type} balance={summaries.find((x) => x.account.id === cashflow.account.id)?.balance ?? 0} onClose={() => setCashflow(null)}
           onSave={(amount, date, note) => onAddCashflow({ accountId: cashflow.account.id, type: cashflow.type, amount, date, note })} />
       )}
 
