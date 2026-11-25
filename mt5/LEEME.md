@@ -6,7 +6,13 @@ Asistente (Expert Advisor) para no sobreoperar. **No abre operaciones nunca**: s
 - **Máx. operaciones por día** (`MaxTradesPerDay`, por defecto 1): la segunda operación del día se cierra apenas se abre.
 - **Máx. posiciones abiertas a la vez** (`MaxOpenPositions`, por defecto 1).
 - Borra las **órdenes pendientes** cuando ya alcanzaste el límite, para que no puedas dejar una puesta para después.
-- Muestra en el gráfico cuántas operaciones llevas hoy.
+- Muestra en el gráfico cuántas operaciones llevas hoy y, al alcanzar el límite, un aviso rojo fijo: **LÍMITE ALCANZADO. HOY YA NO OPERAS.**
+- **Mensaje fuerte:** cuando cierra una operación de más, un **panel rojo tapa todo el gráfico** durante `PanelSeconds` (45 por defecto) con una alarma sonora y este contenido:
+  1. **ALTO. NO SIGAS OPERANDO.**
+  2. Cuántas operaciones hiciste hoy frente a tu límite.
+  3. **Tus propias cifras**: cuánto te costaron en los últimos `HistoryDays` días las operaciones que pasaron tu límite diario, calculado de tu historial real de MT5 (neto de comisión y swap, sin contar depósitos ni retiros). Solo aparece si hay al menos 3 operaciones de más y fueron perdedoras; no se inventa nada.
+  4. **Tu mensaje** (`MyMessage`): cámbialo por las palabras que más te peguen.
+  5. *Cierra la plataforma. Mañana hay mercado.*
 - `BlockMode = false` → solo te avisa con una alerta, sin cerrar nada.
 
 > **Límite de MT5:** la plataforma no permite impedir que una orden se envíe. El asistente la cierra en el mismo instante en que se abre, así que pagarás el spread y la comisión de esa operación de más (y puede cerrar con una pequeña pérdida). Es un freno, no un muro.
@@ -27,6 +33,10 @@ Asistente (Expert Advisor) para no sobreoperar. **No abre operaciones nunca**: s
 | `BlockMode` | `true` cierra las de más; `false` solo avisa. |
 | `DeletePending` | Borra órdenes pendientes al llegar al límite. |
 | `SendPush` | Notificación al celular (requiere tu MetaQuotes ID en MT5). |
+| `MyMessage` | El texto personal del panel rojo. Escríbelo con tus palabras. |
+| `PanelSeconds` | Cuántos segundos tapa el gráfico el panel rojo. |
+| `ShowHistoryStats` / `HistoryDays` | Mostrar lo que te costaron las operaciones de más, y de cuántos días atrás. Usa solo el historial que tu MT5 tenga cargado (Historial de la cuenta → "Todo el historial"). |
+| `PlayAlarm` | Alarma sonora al aparecer el panel. |
 
 ## Antes de usarlo en una cuenta real
 1. **Pruébalo en una cuenta demo**: abre una operación y luego una segunda; la segunda debe cerrarse sola y aparecer una alerta. Este archivo se escribió sin poder compilarlo ni probarlo en MT5, así que revisa que compile sin errores.
